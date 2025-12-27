@@ -21,15 +21,15 @@ type Node struct {
 }
 
 type NodeRepository struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 func (r *NodeRepository) Create(node *Node) error {
-	return r.db.Create(node).Error
+	return r.DB.Create(node).Error
 }
 
 func (r *NodeRepository) Delete(nodeId string) error {
-	return r.db.Delete(&Node{}, "id = ?", nodeId).Error
+	return r.DB.Delete(&Node{}, "id = ?", nodeId).Error
 }
 
 func (r *NodeRepository) SubTree(namespaceId, parentId string) ([]Node, error) {
@@ -45,6 +45,6 @@ WITH RECURSIVE tree AS (
 )
 SELECT * FROM tree;
 `
-	err := r.db.Raw(sql, namespaceId, parentId, namespaceId).Scan(&nodes).Error
+	err := r.DB.Raw(sql, namespaceId, parentId, namespaceId).Scan(&nodes).Error
 	return nodes, err
 }
