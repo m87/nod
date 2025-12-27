@@ -1,4 +1,4 @@
-package core
+package nod
 
 import "gorm.io/gorm"
 

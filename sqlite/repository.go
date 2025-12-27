@@ -1,18 +1,18 @@
-package sqlite
+package nod
 
 import (
-	"github.com/m87/nod/core"
+	nod "github.com/m87/nod/core"
 	"github.com/m87/nod/tags"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 
-func NewRepository(path string) *core.Repository {
+func NewRepository(path string) *nod.Repository {
 	db := initDB(path)
 
-	return &core.Repository{
-		Node: &core.NodeRepository{DB: db},
+	return &nod.Repository{
+		Node: &nod.NodeRepository{DB: db},
 	}
 }
 
@@ -22,7 +22,7 @@ func initDB(path string) *gorm.DB {
 		panic("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&core.Node{}, &tags.Tag{}, &tags.NodeTag{})
+	err = db.AutoMigrate(&nod.Node{}, &tags.Tag{}, &tags.NodeTag{})
 	if err != nil {
 		panic("failed to migrate database")
 	}
