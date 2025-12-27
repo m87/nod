@@ -7,7 +7,7 @@ type Tag struct {
 	Id string `gorm:"type:char(36);primaryKey"`
 	NamespaceId *string `gorm:"type:char(36);index:idx_namespace_id,priority:1;index"`
 	Name string `gorm:"type:text;not null;index"`
-	CreatedAt time.Time `gorm:"type:datetime;not null;default:autoCreateTime"`
+	CreatedAt time.Time `gorm:"type:datetime;not null;autoCreateTime"`
 }
 
 type NodeTag struct {
