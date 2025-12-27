@@ -11,6 +11,7 @@ func NewRepository(path string) *nod.Repository {
 	db := initDB(path)
 
 	return &nod.Repository{
+		Db:   db,
 		Node: &nod.NodeRepository{DB: db},
 	}
 }

@@ -4,14 +4,14 @@ import "gorm.io/gorm"
 
 
 type Repository struct {
-	db *gorm.DB
+	Db *gorm.DB
 	Node *NodeRepository
 }
 
 func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
 		txRepo := &Repository{
-			db:   tx,
+			Db:   tx,
 			Node: &NodeRepository{DB: tx},
 		}
 		return fc(txRepo)
@@ -19,7 +19,7 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 }
 
 func (r *Repository) Save(node *Node, tags []Tag) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(node).Error; err != nil {
 			return err
 		}
