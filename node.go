@@ -28,6 +28,10 @@ func (r *NodeRepository) Create(node *Node) error {
 	return r.DB.Create(node).Error
 }
 
+func (r *NodeRepository) Save(node *Node) error {
+	return r.DB.Save(node).Error
+}
+
 func (r *NodeRepository) Delete(nodeId string) error {
 	return r.DB.Delete(&Node{}, "id = ?", nodeId).Error
 }
