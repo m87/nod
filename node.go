@@ -36,19 +36,3 @@ func (r *NodeRepository) Delete(nodeId string) error {
 	return r.DB.Delete(&Node{}, "id = ?", nodeId).Error
 }
 
-func (r *NodeRepository) SubTree(namespaceId, parentId string) ([]Node, error) {
-	var nodes []Node
-
-	sql := `
-WITH RECURSIVE tree AS (
-  SELECT * FROM nodes WHERE namespace_id = ? AND id = ?
-  UNION ALL
-  SELECT n.* FROM nodes n
-  JOIN tree t ON n.parent_id = t.id
-  WHERE n.namespace_id = ?
-)
-SELECT * FROM tree;
-`
-	err := r.DB.Raw(sql, namespaceId, parentId, namespaceId).Scan(&nodes).Error
-	return nodes, err
-}
