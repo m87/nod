@@ -55,7 +55,7 @@ func (r *Repository) Save(node *Node, tags []Tag) error {
 	})
 }
 
-func LoadTree(db *gorm.DB, rootID string) (TreeNode, error) {
+func (r *Repository) LoadTree(rootID string) (TreeNode, error) {
 	var nodes []Node
 
 	sql := `
@@ -67,7 +67,7 @@ WITH RECURSIVE tree AS (
 )
 SELECT * FROM tree;
 `
-	if err := db.Raw(sql, rootID).Scan(&nodes).Error; err != nil {
+	if err := r.Db.Raw(sql, rootID).Scan(&nodes).Error; err != nil {
 		return TreeNode{}, err
 	}
 	if len(nodes) == 0 {
@@ -85,7 +85,7 @@ SELECT * FROM tree;
 		Name   string
 	}
 	var rows []row
-	if err := db.Table("node_tags nt").
+	if err := r.Db.Table("node_tags nt").
 		Select("nt.node_id as node_id, t.id as tag_id, t.name as name").
 		Joins("JOIN tags t ON t.id = nt.tag_id").
 		Where("nt.node_id IN ?", nodeIDs).
