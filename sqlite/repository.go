@@ -20,13 +20,13 @@ func initDB(path string) *gorm.DB {
 	if err != nil {
 		panic("failed to connect database")
 	}
+	db.Exec("PRAGMA foreign_keys = ON;")
 
 	err = db.AutoMigrate(&nod.Node{}, &nod.Tag{}, &nod.NodeTag{})
 	if err != nil {
 		panic("failed to migrate database")
 	}
 
-	db.Exec("PRAGMA foreign_keys = ON;")
 
 	return db
 }
