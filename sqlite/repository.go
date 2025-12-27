@@ -1,8 +1,7 @@
 package nod
 
 import (
-	nod "github.com/m87/nod/core"
-	"github.com/m87/nod/tags"
+	"github.com/m87/nod"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -22,7 +21,7 @@ func initDB(path string) *gorm.DB {
 		panic("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&nod.Node{}, &tags.Tag{}, &tags.NodeTag{})
+	err = db.AutoMigrate(&nod.Node{}, &nod.Tag{}, &nod.NodeTag{})
 	if err != nil {
 		panic("failed to migrate database")
 	}
