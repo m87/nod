@@ -1,6 +1,9 @@
 package nod
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 
 type Repository struct {
@@ -29,7 +32,7 @@ func (r *Repository) Save(node *Node, tags []Tag) error {
 		}
 
 		for _, tag := range tags {
-			if err := tx.FirstOrCreate(&tag, Tag{Name: tag.Name}).Error; err != nil {
+			if err := tx.FirstOrCreate(&tag, Tag{Id: uuid.New().String(), Name: tag.Name}).Error; err != nil {
 				return err
 			}
 
