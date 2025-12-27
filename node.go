@@ -16,8 +16,8 @@ type Node struct {
 	Status      string         `gorm:"type:text;not null;index;default:''"`
 	Name        string         `gorm:"type:text;not null;index"`
 	Metadata    datatypes.JSON `gorm:"type:json;not null;default:'{}'"`
-	CreatedAt   time.Time      `gorm:"type:datetime;not null;default:current_timestamp"`
-	UpdatedAt   time.Time      `gorm:"type:datetime;not null;default:current_timestamp on update current_timestamp"`
+	CreatedAt   time.Time      `gorm:"type:datetime;not null;default:autoCreateTime"`
+	UpdatedAt   time.Time      `gorm:"type:datetime;not null;default:autoUpdateTime"`
 }
 
 type NodeRepository struct {
