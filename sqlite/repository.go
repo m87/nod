@@ -1,4 +1,4 @@
-package nod
+package sqlite
 
 import (
 	"github.com/m87/nod"
