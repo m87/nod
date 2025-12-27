@@ -31,3 +31,4 @@ func initDB(path string) *gorm.DB {
 
 	return db
 }
+
