@@ -466,6 +466,12 @@ SELECT * FROM path;
 		}
 	}
 	
+	fmt.Println("Debug: Building ancestor tree for childID =", childID)
+	fmt.Println("Debug: Retrieved nodes:")
+	for _, n := range nodes {
+		fmt.Printf("  Node ID: %s, Parent ID: %v\n", n.Core.Id, n.Core.ParentId)
+	}
+
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
 		byID[n.Core.Id] = &TreeNode{
