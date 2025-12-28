@@ -325,7 +325,7 @@ SELECT * FROM tree;
 	if err := db.Raw(sql, rootID).Scan(&nodeCores).Error; err != nil {
 		return nil, err
 	}
-	if len(nodes) == 0 {
+	if len(nodeCores) == 0 {
 		return nil, gorm.ErrRecordNotFound
 	}
 
