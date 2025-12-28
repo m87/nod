@@ -390,3 +390,109 @@ SELECT * FROM tree;
 	return root, nil
 
 }
+
+func (q *NodeQuery) Ancestors() ([]*TreeNode, error) {
+	trees := make([]*TreeNode, 0)
+
+	nodes, err := q.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, n := range nodes {
+		tree, err := q.buildAncestorTree(n.Core.Id)
+		if err != nil {
+			return nil, err
+		}
+		trees = append(trees, tree)
+	}
+
+	return trees, nil
+}
+
+func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) { 
+	return q.buildAncestorTree(childID)
+}
+
+func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
+	db := q.db.Model(&NodeCore{})
+	var nodeCores []NodeCore
+	var nodes []*Node
+	
+	sql := `
+WITH RECURSIVE path AS (
+  SELECT * FROM nodes WHERE id = ?
+  UNION ALL
+  SELECT p.* FROM nodes p
+  JOIN path c ON p.id = c.parent_id
+)
+SELECT * FROM path;
+`
+	if err := db.Raw(sql, childID).Scan(&nodeCores).Error; err != nil {
+		return nil, err
+	}
+	if len(nodeCores) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, nc := range nodeCores {
+		nodes = append(nodes, &Node{
+			Core: nc,
+		})
+	}
+
+	if q.includeTags {
+		tagsByNode, err := loadTagsByNode(q.db, nodes)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, n := range nodes {
+			n.Tags = tagsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeKV {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].KV = kvsByNode[n.Core.Id]
+		}
+	}
+	
+	byID := make(map[string]*TreeNode, len(nodes))
+	for _, n := range nodes {
+		byID[n.Core.Id] = &TreeNode{
+			Node: n,
+		}
+	}
+	
+	var root *TreeNode
+	for _, n := range nodes {
+		cur := byID[n.Core.Id]
+		if n.Core.Id == childID {
+			root = cur
+			continue
+		}
+		if n.Core.ParentId == nil {
+			continue
+		}
+		parent := byID[*n.Core.ParentId]
+		if parent == nil {
+			continue
+		}
+		parent.Children = append(parent.Children, cur)
+	}
+	
+	if root == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return root, nil
+}
+
