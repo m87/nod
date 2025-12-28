@@ -421,7 +421,7 @@ func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
 	
 	sql := `
 WITH RECURSIVE path AS (
-  SELECT * FROM node_cores) WHERE id = ?
+  SELECT * FROM node_cores WHERE id = ?
   UNION ALL
   SELECT p.* FROM node_cores p
   JOIN path c ON p.id = c.parent_id
