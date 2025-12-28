@@ -32,90 +32,49 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 }
 
 func (r *Repository) Save(node *Node) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(node).Error; err != nil {
+	if node.Id == "" {
+		node.Id = uuid.New().String()
+	}
+	err := r.Db.Save(node.NodeCore).Error
+	if err != nil {
+		return err
+	}
+
+	if err := r.Db.Model(&NodeTag{}).Where("node_id = ?", node.Id).Delete(&NodeTag{}).Error; err != nil {
+		return err
+	}
+	for _, tag := range node.Tags {
+		if tag.Id == "" {
+			tag.Id = uuid.New().String()
+		}
+		if err := r.Db.FirstOrCreate(tag, Tag{Id: tag.Id}).Error; err != nil {
 			return err
 		}
-
-		if err := tx.Where("node_id = ?", node.Id).Delete(&NodeTag{}).Error; err != nil {
+		nodeTag := &NodeTag{
+			NodeId: node.Id,
+			TagId:  tag.Id,
+		}
+		if err := r.Db.Create(nodeTag).Error; err != nil {
 			return err
 		}
+	}
 
-		for _, tag := range node.Tags {
-			if err := tx.FirstOrCreate(&tag, Tag{Id: uuid.New().String(), Name: tag.Name}).Error; err != nil {
-				return err
-			}
-
-			nodeTag := NodeTag{
-				NodeId: node.Id,
-				TagId:  tag.Id,
-			}
-			if err := tx.Create(&nodeTag).Error; err != nil {
-				return err
-			}
+	kvRepo := &KVRepository{DB: r.Db}
+	if err := kvRepo.DeleteAll(node.Id); err != nil {
+		return err
+	}
+	for _, kv := range node.KV {
+		kv.NodeId = node.Id
+		if err := kvRepo.Set(kv); err != nil {
+			return err
 		}
+	}
 
-		return nil
-	})
+	return nil
 }
 
 func (r *Repository) Query() *NodeQuery {
 	return Query(r.Db)
-}
-
-func (r *Repository) LoadTree(rootID string) (*TreeNode, error) {
-	var nodes []*Node
-
-	sql := `
-WITH RECURSIVE tree AS (
-  SELECT * FROM nodes WHERE id = ?
-  UNION ALL
-  SELECT n.* FROM nodes n
-  JOIN tree t ON n.parent_id = t.id
-)
-SELECT * FROM tree;
-`
-	if err := r.Db.Raw(sql, rootID).Scan(&nodes).Error; err != nil {
-		return nil, err
-	}
-	if len(nodes) == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	tagsByNode, err := loadTagsByNode(r.Db, nodes)
-	if err != nil {
-		return nil, err
-	}
-
-	byID := make(map[string]*TreeNode, len(nodes))
-	for _, n := range nodes {
-		n.Tags = tagsByNode[n.Id]
-		byID[n.Id] = &TreeNode{
-			Node: n,
-		}
-	}
-
-	var root *TreeNode
-	for _, n := range nodes {
-		cur := byID[n.Id]
-		if n.Id == rootID {
-			root = cur
-			continue
-		}
-		if n.ParentId == nil {
-			continue
-		}
-		parent := byID[*n.ParentId]
-		if parent == nil {
-			continue
-		}
-		parent.Children = append(parent.Children, cur)
-	}
-
-	if root == nil {
-		return nil, gorm.ErrRecordNotFound
-	}
-	return root, nil
 }
 
 func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
