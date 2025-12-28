@@ -32,6 +32,7 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 }
 
 func (r *Repository) Save(node *Node) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
 	if node.Core.Id == "" {
 		node.Core.Id = uuid.New().String()
 	}
@@ -71,6 +72,22 @@ func (r *Repository) Save(node *Node) error {
 	}
 
 	return nil
+})
+}
+
+func (r *Repository) Delete(nodeId string) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&NodeCore{}, "id = ?", nodeId).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&NodeTag{}, "node_id = ?", nodeId).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&KV{}, "node_id = ?", nodeId).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *Repository) Query() *NodeQuery {
