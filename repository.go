@@ -35,7 +35,7 @@ func (r *Repository) Save(node *Node) error {
 	if node.Core.Id == "" {
 		node.Core.Id = uuid.New().String()
 	}
-	err := r.Db.Save(node.Core).Error
+	err := r.Db.Save(&node.Core).Error
 	if err != nil {
 		return err
 	}
