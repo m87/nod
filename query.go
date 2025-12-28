@@ -19,21 +19,21 @@ type StringFilter struct {
 }
 
 type NodeQuery struct {
-	db          *gorm.DB
+	db           *gorm.DB
 	nodeIds      []string
 	parentIds    []string
 	namespaceIds []string
-	name        *StringFilter
-	type_       *StringFilter
-	kind        *StringFilter
-	status      *StringFilter
-	createdDate *TimeFilter
-	updatedDate *TimeFilter
-	includeTags bool
-	includeKV   bool
-	limit       int
-	page        int
-	pageSize    int
+	name         *StringFilter
+	type_        *StringFilter
+	kind         *StringFilter
+	status       *StringFilter
+	createdDate  *TimeFilter
+	updatedDate  *TimeFilter
+	includeTags  bool
+	includeKV    bool
+	limit        int
+	page         int
+	pageSize     int
 }
 
 func Query(db *gorm.DB) *NodeQuery {
@@ -139,7 +139,7 @@ func ApplyStringFilter(db *gorm.DB, field string, filter *StringFilter) *gorm.DB
 	return db
 }
 
-func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB { 
+func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 	if filter.From != nil {
 		db = db.Where(field+" >= ?", *filter.From)
 	}
@@ -150,7 +150,7 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 }
 
 func (q *NodeQuery) FindAll() ([]*Node, error) {
-	db := q.db.Model(&Node{})
+	db := q.db.Model(&NodeCore{})
 
 	if len(q.nodeIds) > 0 {
 		db = db.Where("id IN ?", q.nodeIds)
@@ -187,9 +187,15 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		db = db.Offset(offset).Limit(q.pageSize)
 	}
 
-	var nodes []*Node
-	if err := db.Find(&nodes).Error; err != nil {
+	var nodeCores []NodeCore
+	if err := db.Find(&nodeCores).Error; err != nil {
 		return nil, err
+	}
+
+	var nodes []*Node
+	for _, nc := range nodeCores {
+		nodes = append(nodes, &Node{
+			NodeCore: nc})
 	}
 
 	if q.includeTags {
@@ -231,7 +237,7 @@ func (q *NodeQuery) Find() (*Node, error) {
 }
 
 func (q *NodeQuery) Count() (int64, error) {
-	db := q.db.Model(&Node{})
+	db := q.db.Model(&NodeCore{})
 
 	if len(q.nodeIds) > 0 {
 		db = db.Where("id IN ?", q.nodeIds)
@@ -270,7 +276,7 @@ func (q *NodeQuery) Count() (int64, error) {
 
 func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 	trees := make([]*TreeNode, 0)
-	
+
 	nodes, err := q.FindAll()
 	if err != nil {
 		return nil, err
@@ -292,8 +298,9 @@ func (q *NodeQuery) DecendantTree(rootID string) (*TreeNode, error) {
 }
 
 func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
-	  db := q.db.Model(&Node{})
-		var nodes []*Node
+	db := q.db.Model(&NodeCore{})
+	var nodeCores []NodeCore
+	var nodes []*Node
 
 	sql := `
 WITH RECURSIVE tree AS (
@@ -304,11 +311,17 @@ WITH RECURSIVE tree AS (
 )
 SELECT * FROM tree;
 `
-	if err := db.Raw(sql, rootID).Scan(&nodes).Error; err != nil {
+	if err := db.Raw(sql, rootID).Scan(&nodeCores).Error; err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, nc := range nodeCores {
+		nodes = append(nodes, &Node{
+			NodeCore: nc,
+		})
 	}
 
 	if q.includeTags {
@@ -335,7 +348,7 @@ SELECT * FROM tree;
 			nodes[i].KV = kvsByNode[n.Id]
 		}
 	}
-	
+
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
 		byID[n.Id] = &TreeNode{
@@ -366,4 +379,3 @@ SELECT * FROM tree;
 	return root, nil
 
 }
-
