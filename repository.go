@@ -7,7 +7,7 @@ import (
 
 type Node struct {
 	NodeCore
-	Tags []Tag
+	Tags []*Tag
 	KV   map[string]*KV
 }
 
@@ -17,8 +17,7 @@ type Repository struct {
 }
 
 type TreeNode struct {
-	Node     Node
-	Tags     []Tag
+	Node     *Node
 	Children []*TreeNode
 }
 
@@ -65,7 +64,7 @@ func (r *Repository) Query() *NodeQuery {
 }
 
 func (r *Repository) LoadTree(rootID string) (*TreeNode, error) {
-	var nodes []Node
+	var nodes []*Node
 
 	sql := `
 WITH RECURSIVE tree AS (
@@ -90,9 +89,9 @@ SELECT * FROM tree;
 
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
+		n.Tags = tagsByNode[n.Id]
 		byID[n.Id] = &TreeNode{
 			Node: n,
-			Tags: tagsByNode[n.Id],
 		}
 	}
 
@@ -119,7 +118,7 @@ SELECT * FROM tree;
 	return root, nil
 }
 
-func loadTagsByNode(db *gorm.DB, nodes []Node) (map[string][]Tag, error) {
+func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 	ids := make([]string, 0, len(nodes))
 	for _, n := range nodes {
 		ids = append(ids, n.Id)
@@ -139,9 +138,9 @@ func loadTagsByNode(db *gorm.DB, nodes []Node) (map[string][]Tag, error) {
 		return nil, err
 	}
 
-	out := make(map[string][]Tag, len(ids))
+	out := make(map[string][]*Tag, len(ids))
 	for _, r := range rows {
-		out[r.NodeID] = append(out[r.NodeID], Tag{Id: r.TagID, Name: r.Name})
+		out[r.NodeID] = append(out[r.NodeID], &Tag{Id: r.TagID, Name: r.Name})
 	}
 	return out, nil
 }
