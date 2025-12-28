@@ -481,6 +481,9 @@ SELECT * FROM path;
 			continue
 		}
 		parent := byID[*n.Core.ParentId]
+		if parent.Children == nil {
+			parent.Children = make([]*TreeNode, 0)
+		}
 		parent.Children = append(parent.Children, cur)
 	}
 	
