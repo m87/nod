@@ -482,7 +482,7 @@ SELECT * FROM path;
 	var root *TreeNode
 	for _, n := range nodes {
 		cur := byID[n.Core.Id]
-		if n.Core.ParentId == nil {
+		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
 			root = cur
 			continue
 		}
