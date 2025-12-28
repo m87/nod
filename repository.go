@@ -1,6 +1,8 @@
 package nod
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -77,6 +79,14 @@ func (r *Repository) Save(node *Node) error {
 
 func (r *Repository) Delete(nodeId string) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
+		count := int64(0)
+		if err := tx.Where("parent_id = ?", nodeId).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return errors.New("cannot delete node with children")
+		}
+
 		if err := tx.Delete(&NodeCore{}, "id = ?", nodeId).Error; err != nil {
 			return err
 		}
