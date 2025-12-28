@@ -481,6 +481,11 @@ SELECT * FROM path;
 			continue
 		}
 		parent := byID[*n.Core.ParentId]
+
+    if parent == nil {
+			continue
+		}
+
 		if parent.Children == nil {
 			parent.Children = make([]*TreeNode, 0)
 		}
