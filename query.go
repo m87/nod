@@ -1,6 +1,7 @@
 package nod
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -151,6 +152,16 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 
 func (q *NodeQuery) FindAll() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
+	fmt.Println("Debug: Starting FindAll with filters")
+	fmt.Println("Debug: nodeIds =", q.nodeIds)
+	fmt.Println("Debug: parentIds =", q.parentIds)
+	fmt.Println("Debug: namespaceIds =", q.namespaceIds)
+	fmt.Println("Debug: name filter =", q.name)
+	fmt.Println("Debug: type filter =", q.type_)
+	fmt.Println("Debug: kind filter =", q.kind)
+	fmt.Println("Debug: status filter =", q.status)
+	fmt.Println("Debug: createdDate filter =", q.createdDate)
+	fmt.Println("Debug: updatedDate filter =", q.updatedDate)
 
 	if len(q.nodeIds) > 0 {
 		db = db.Where("id IN ?", q.nodeIds)
