@@ -80,7 +80,8 @@ func (r *Repository) Save(node *Node) error {
 func (r *Repository) Delete(nodeId string) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		count := int64(0)
-		if err := tx.Where(&NodeCore{}, "parent_id = ?", nodeId).Count(&count).Error; err != nil {
+		db := tx.Model(&NodeCore{})
+		if err := db.Where("parent_id = ?", nodeId).Count(&count).Error; err != nil {
 			return err
 		}
 		if count > 0 {
