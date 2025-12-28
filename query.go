@@ -195,7 +195,7 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 	var nodes []*Node
 	for _, nc := range nodeCores {
 		nodes = append(nodes, &Node{
-			NodeCore: nc})
+			Core: nc})
 	}
 
 	if q.includeTags {
@@ -204,21 +204,21 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 			return nil, err
 		}
 		for _, n := range nodes {
-			n.Tags = tagsByNode[n.Id]
+			n.Tags = tagsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeKV {
 		nodeIds := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Id)
+			nodeIds = append(nodeIds, n.Core.Id)
 		}
 		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range nodes {
-			n.KV = kvsByNode[n.Id]
+			n.KV = kvsByNode[n.Core.Id]
 		}
 	}
 
@@ -283,7 +283,7 @@ func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 	}
 
 	for _, n := range nodes {
-		tree, err := q.buildTree(n.Id)
+		tree, err := q.buildTree(n.Core.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +320,7 @@ SELECT * FROM tree;
 
 	for _, nc := range nodeCores {
 		nodes = append(nodes, &Node{
-			NodeCore: nc,
+			Core: nc,
 		})
 	}
 
@@ -331,42 +331,42 @@ SELECT * FROM tree;
 		}
 
 		for _, n := range nodes {
-			n.Tags = tagsByNode[n.Id]
+			n.Tags = tagsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeKV {
 		nodeIds := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Id)
+			nodeIds = append(nodeIds, n.Core.Id)
 		}
 		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
 		if err != nil {
 			return nil, err
 		}
 		for i, n := range nodes {
-			nodes[i].KV = kvsByNode[n.Id]
+			nodes[i].KV = kvsByNode[n.Core.Id]
 		}
 	}
 
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
-		byID[n.Id] = &TreeNode{
+		byID[n.Core.Id] = &TreeNode{
 			Node: n,
 		}
 	}
 
 	var root *TreeNode
 	for _, n := range nodes {
-		cur := byID[n.Id]
-		if n.Id == rootID {
+		cur := byID[n.Core.Id]
+		if n.Core.Id == rootID {
 			root = cur
 			continue
 		}
-		if n.ParentId == nil {
+		if n.Core.ParentId == nil {
 			continue
 		}
-		parent := byID[*n.ParentId]
+		parent := byID[*n.Core.ParentId]
 		if parent == nil {
 			continue
 		}

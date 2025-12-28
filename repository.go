@@ -6,7 +6,7 @@ import (
 )
 
 type Node struct {
-	NodeCore
+	Core NodeCore
 	Tags []*Tag
 	KV   map[string]*KV
 }
@@ -32,15 +32,15 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 }
 
 func (r *Repository) Save(node *Node) error {
-	if node.Id == "" {
-		node.Id = uuid.New().String()
+	if node.Core.Id == "" {
+		node.Core.Id = uuid.New().String()
 	}
-	err := r.Db.Save(node.NodeCore).Error
+	err := r.Db.Save(node.Core).Error
 	if err != nil {
 		return err
 	}
 
-	if err := r.Db.Model(&NodeTag{}).Where("node_id = ?", node.Id).Delete(&NodeTag{}).Error; err != nil {
+	if err := r.Db.Model(&NodeTag{}).Where("node_id = ?", node.Core.Id).Delete(&NodeTag{}).Error; err != nil {
 		return err
 	}
 	for _, tag := range node.Tags {
@@ -51,7 +51,7 @@ func (r *Repository) Save(node *Node) error {
 			return err
 		}
 		nodeTag := &NodeTag{
-			NodeId: node.Id,
+			NodeId: node.Core.Id,
 			TagId:  tag.Id,
 		}
 		if err := r.Db.Create(nodeTag).Error; err != nil {
@@ -60,11 +60,11 @@ func (r *Repository) Save(node *Node) error {
 	}
 
 	kvRepo := &KVRepository{DB: r.Db}
-	if err := kvRepo.DeleteAll(node.Id); err != nil {
+	if err := kvRepo.DeleteAll(node.Core.Id); err != nil {
 		return err
 	}
 	for _, kv := range node.KV {
-		kv.NodeId = node.Id
+		kv.NodeId = node.Core.Id
 		if err := kvRepo.Set(kv); err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (r *Repository) Query() *NodeQuery {
 func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 	ids := make([]string, 0, len(nodes))
 	for _, n := range nodes {
-		ids = append(ids, n.Id)
+		ids = append(ids, n.Core.Id)
 	}
 
 	type row struct {
