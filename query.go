@@ -304,9 +304,9 @@ func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
 
 	sql := `
 WITH RECURSIVE tree AS (
-  SELECT * FROM nodes WHERE id = ?
+  SELECT * FROM node_cores WHERE id = ?
   UNION ALL
-  SELECT n.* FROM nodes n
+  SELECT n.* FROM node_cores n
   JOIN tree t ON n.parent_id = t.id
 )
 SELECT * FROM tree;
