@@ -5,15 +5,20 @@ import (
 	"gorm.io/gorm"
 )
 
+type Node struct {
+	NodeCore
+	Tags []Tag
+	KV   map[string]*KV
+}
 
 type Repository struct {
-	Db *gorm.DB
+	Db   *gorm.DB
 	Node *NodeRepository
 }
 
 type TreeNode struct {
 	Node     Node
-	Tags		 []Tag
+	Tags     []Tag
 	Children []*TreeNode
 }
 
@@ -27,7 +32,7 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 	})
 }
 
-func (r *Repository) Save(node *Node, tags []Tag) error {
+func (r *Repository) Save(node *Node) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(node).Error; err != nil {
 			return err
@@ -37,7 +42,7 @@ func (r *Repository) Save(node *Node, tags []Tag) error {
 			return err
 		}
 
-		for _, tag := range tags {
+		for _, tag := range node.Tags {
 			if err := tx.FirstOrCreate(&tag, Tag{Id: uuid.New().String(), Name: tag.Name}).Error; err != nil {
 				return err
 			}
@@ -53,6 +58,10 @@ func (r *Repository) Save(node *Node, tags []Tag) error {
 
 		return nil
 	})
+}
+
+func (r *Repository) Query() *NodeQuery {
+	return Query(r.Db)
 }
 
 func (r *Repository) LoadTree(rootID string) (*TreeNode, error) {
@@ -74,7 +83,6 @@ SELECT * FROM tree;
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	// tagi (jak wcześniej) -> tagsByNode map[string][]Tag
 	tagsByNode, err := loadTagsByNode(r.Db, nodes)
 	if err != nil {
 		return nil, err
@@ -111,7 +119,6 @@ SELECT * FROM tree;
 	return root, nil
 }
 
-
 func loadTagsByNode(db *gorm.DB, nodes []Node) (map[string][]Tag, error) {
 	ids := make([]string, 0, len(nodes))
 	for _, n := range nodes {
@@ -138,4 +145,3 @@ func loadTagsByNode(db *gorm.DB, nodes []Node) (map[string][]Tag, error) {
 	}
 	return out, nil
 }
-
