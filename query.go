@@ -190,7 +190,6 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 	return db
 }
 
-
 func (q *NodeQuery) FindAll() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
 	fmt.Println("Debug: Starting FindAll with filters")
@@ -204,7 +203,7 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 	fmt.Println("Debug: createdDate filter =", q.createdDate)
 	fmt.Println("Debug: updatedDate filter =", q.updatedDate)
 
-  db = ApplyCommonFilters(db, q)
+	db = ApplyCommonFilters(db, q)
 
 	if q.limit > 0 {
 		db = db.Limit(q.limit)
@@ -266,7 +265,7 @@ func (q *NodeQuery) Find() (*Node, error) {
 func (q *NodeQuery) Count() (int64, error) {
 	db := q.db.Model(&NodeCore{})
 
-  db = ApplyCommonFilters(db, q)
+	db = ApplyCommonFilters(db, q)
 
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
@@ -285,14 +284,13 @@ func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 
 	for _, n := range nodes {
 		fmt.Println("Debug: Processing node ID =", n.Core.Id, "with Parent ID =", n.Core.ParentId)
-		if n.Core.ParentId != nil || *n.Core.ParentId == "" {
-			continue
+		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
+			tree, err := q.buildTree(n.Core.Id)
+			if err != nil {
+				return nil, err
+			}
+			trees = append(trees, tree)
 		}
-		tree, err := q.buildTree(n.Core.Id)
-		if err != nil {
-			return nil, err
-		}
-		trees = append(trees, tree)
 	}
 
 	return trees, nil
@@ -404,7 +402,7 @@ func (q *NodeQuery) Ancestors() ([]*TreeNode, error) {
 	return trees, nil
 }
 
-func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) { 
+func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) {
 	return q.buildAncestorTree(childID)
 }
 
@@ -412,7 +410,7 @@ func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
 	db := q.db.Model(&NodeCore{})
 	var nodeCores []NodeCore
 	var nodes []*Node
-	
+
 	sql := `
 WITH RECURSIVE path AS (
   SELECT * FROM node_cores WHERE id = ?
@@ -459,7 +457,7 @@ SELECT * FROM path;
 			nodes[i].KV = kvsByNode[n.Core.Id]
 		}
 	}
-	
+
 	fmt.Println("Debug: Building ancestor tree for childID =", childID)
 	fmt.Println("Debug: Retrieved nodes:")
 	for _, n := range nodes {
@@ -472,7 +470,7 @@ SELECT * FROM path;
 			Node: n,
 		}
 	}
-	
+
 	var root *TreeNode
 	for _, n := range nodes {
 		cur := byID[n.Core.Id]
@@ -482,7 +480,7 @@ SELECT * FROM path;
 		}
 		parent := byID[*n.Core.ParentId]
 
-    if parent == nil {
+		if parent == nil {
 			continue
 		}
 
@@ -491,10 +489,9 @@ SELECT * FROM path;
 		}
 		parent.Children = append(parent.Children, cur)
 	}
-	
+
 	if root == nil {
 		return nil, gorm.ErrRecordNotFound
 	}
 	return root, nil
 }
-
