@@ -284,6 +284,7 @@ func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 	}
 
 	for _, n := range nodes {
+		fmt.Println("Debug: Processing node ID =", n.Core.Id, "with Parent ID =", n.Core.ParentId)
 		if n.Core.ParentId != nil || *n.Core.ParentId == "" {
 			continue
 		}
