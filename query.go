@@ -32,6 +32,7 @@ type NodeQuery struct {
 	updatedDate  *TimeFilter
 	includeTags  bool
 	includeKV    bool
+	exludeRoot   bool
 	limit        int
 	page         int
 	pageSize     int
@@ -41,6 +42,11 @@ func Query(db *gorm.DB) *NodeQuery {
 	return &NodeQuery{
 		db: db,
 	}
+}
+
+func (q *NodeQuery) ExcludeRoot() *NodeQuery {
+	q.exludeRoot = true
+	return q
 }
 
 func (q *NodeQuery) NodeId(nodeId string) *NodeQuery {
@@ -150,21 +156,12 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 	return db
 }
 
-func (q *NodeQuery) FindAll() ([]*Node, error) {
-	db := q.db.Model(&NodeCore{})
-	fmt.Println("Debug: Starting FindAll with filters")
-	fmt.Println("Debug: nodeIds =", q.nodeIds)
-	fmt.Println("Debug: parentIds =", q.parentIds)
-	fmt.Println("Debug: namespaceIds =", q.namespaceIds)
-	fmt.Println("Debug: name filter =", q.name)
-	fmt.Println("Debug: type filter =", q.type_)
-	fmt.Println("Debug: kind filter =", q.kind)
-	fmt.Println("Debug: status filter =", q.status)
-	fmt.Println("Debug: createdDate filter =", q.createdDate)
-	fmt.Println("Debug: updatedDate filter =", q.updatedDate)
-
+func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 	if len(q.nodeIds) > 0 {
 		db = db.Where("id IN ?", q.nodeIds)
+	}
+	if q.exludeRoot {
+		db = db.Where("parent_id IS NOT NULL")
 	}
 	if len(q.parentIds) > 0 {
 		db = db.Where("parent_id IN ?", q.parentIds)
@@ -190,6 +187,25 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 	if q.updatedDate != nil {
 		db = ApplyTimeFilter(db, "updated_at", q.updatedDate)
 	}
+	return db
+}
+
+
+func (q *NodeQuery) FindAll() ([]*Node, error) {
+	db := q.db.Model(&NodeCore{})
+	fmt.Println("Debug: Starting FindAll with filters")
+	fmt.Println("Debug: nodeIds =", q.nodeIds)
+	fmt.Println("Debug: parentIds =", q.parentIds)
+	fmt.Println("Debug: namespaceIds =", q.namespaceIds)
+	fmt.Println("Debug: name filter =", q.name)
+	fmt.Println("Debug: type filter =", q.type_)
+	fmt.Println("Debug: kind filter =", q.kind)
+	fmt.Println("Debug: status filter =", q.status)
+	fmt.Println("Debug: createdDate filter =", q.createdDate)
+	fmt.Println("Debug: updatedDate filter =", q.updatedDate)
+
+  db = ApplyCommonFilters(db, q)
+
 	if q.limit > 0 {
 		db = db.Limit(q.limit)
 	}
@@ -250,33 +266,7 @@ func (q *NodeQuery) Find() (*Node, error) {
 func (q *NodeQuery) Count() (int64, error) {
 	db := q.db.Model(&NodeCore{})
 
-	if len(q.nodeIds) > 0 {
-		db = db.Where("id IN ?", q.nodeIds)
-	}
-	if len(q.parentIds) > 0 {
-		db = db.Where("parent_id IN ?", q.parentIds)
-	}
-	if len(q.namespaceIds) > 0 {
-		db = db.Where("namespace_id IN ?", q.namespaceIds)
-	}
-	if q.name != nil {
-		db = ApplyStringFilter(db, "name", q.name)
-	}
-	if q.type_ != nil {
-		db = ApplyStringFilter(db, "type", q.type_)
-	}
-	if q.kind != nil {
-		db = ApplyStringFilter(db, "kind", q.kind)
-	}
-	if q.status != nil {
-		db = ApplyStringFilter(db, "status", q.status)
-	}
-	if q.createdDate != nil {
-		db = ApplyTimeFilter(db, "created_at", q.createdDate)
-	}
-	if q.updatedDate != nil {
-		db = ApplyTimeFilter(db, "updated_at", q.updatedDate)
-	}
+  db = ApplyCommonFilters(db, q)
 
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
