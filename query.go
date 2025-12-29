@@ -284,6 +284,9 @@ func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 	}
 
 	for _, n := range nodes {
+		if n.Core.ParentId != nil {
+			continue
+		}
 		tree, err := q.buildTree(n.Core.Id)
 		if err != nil {
 			return nil, err
