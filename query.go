@@ -274,7 +274,7 @@ func (q *NodeQuery) Count() (int64, error) {
 	return count, nil
 }
 
-func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
+func (q *NodeQuery) Decendants(onlyRoots bool) ([]*TreeNode, error) {
 	trees := make([]*TreeNode, 0)
 
 	nodes, err := q.FindAll()
@@ -284,7 +284,7 @@ func (q *NodeQuery) Decendants() ([]*TreeNode, error) {
 
 	for _, n := range nodes {
 		fmt.Println("Debug: Processing node ID =", n.Core.Id, "with Parent ID =", n.Core.ParentId)
-		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
+		if !onlyRoots && (n.Core.ParentId == nil || *n.Core.ParentId == "") {
 			tree, err := q.buildTree(n.Core.Id)
 			if err != nil {
 				return nil, err
