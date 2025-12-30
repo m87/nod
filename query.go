@@ -167,7 +167,7 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 		db = db.Where("id IN ?", q.nodeIds)
 	}
 	if q.onlyRoots {
-		db = db.Where("parent_id IS NULL")
+		db = db.Where("parent_id IS NULL or parent_id = \"\"" )
 	}
 	if q.exludeRoot {
 		db = db.Where("parent_id IS NOT NULL")
