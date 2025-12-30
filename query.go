@@ -33,6 +33,7 @@ type NodeQuery struct {
 	includeTags  bool
 	includeKV    bool
 	exludeRoot   bool
+	onlyRoots		 bool
 	limit        int
 	page         int
 	pageSize     int
@@ -42,6 +43,11 @@ func Query(db *gorm.DB) *NodeQuery {
 	return &NodeQuery{
 		db: db,
 	}
+}
+
+func (q *NodeQuery) Roots() *NodeQuery {
+	q.onlyRoots = true
+	return q
 }
 
 func (q *NodeQuery) ExcludeRoot() *NodeQuery {
@@ -159,6 +165,9 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 	if len(q.nodeIds) > 0 {
 		db = db.Where("id IN ?", q.nodeIds)
+	}
+	if q.onlyRoots {
+		db = db.Where("parent_id IS NULL")
 	}
 	if q.exludeRoot {
 		db = db.Where("parent_id IS NOT NULL")
