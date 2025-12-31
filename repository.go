@@ -2,6 +2,7 @@ package nod
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -16,6 +17,7 @@ type Node struct {
 type Repository struct {
 	Db   *gorm.DB
 	Node *NodeRepository
+	Log  *slog.Logger
 }
 
 type TreeNode struct {
@@ -24,57 +26,66 @@ type TreeNode struct {
 }
 
 func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
+	r.Log.Debug(">> new transaction")
 	return r.Db.Transaction(func(tx *gorm.DB) error {
+		r.Log.Debug(">> new repository in transaction")
 		txRepo := &Repository{
 			Db:   tx,
 			Node: &NodeRepository{DB: tx},
 		}
-		return fc(txRepo)
+		r.Log.Debug(">> execute function in transaction")
+		err := fc(txRepo)
+		if err != nil {
+			r.Log.Debug("<< rollback transaction due to error:", slog.String("error", err.Error()))
+			return err
+		}
+		r.Log.Debug("<< end repository in transaction")
+    return err
 	})
 }
 
 func (r *Repository) Save(node *Node) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
-	if node.Core.Id == "" {
-		node.Core.Id = uuid.New().String()
-	}
-	err := r.Db.Save(&node.Core).Error
-	if err != nil {
-		return err
-	}
-
-	if err := r.Db.Model(&NodeTag{}).Where("node_id = ?", node.Core.Id).Delete(&NodeTag{}).Error; err != nil {
-		return err
-	}
-	for _, tag := range node.Tags {
-		if tag.Id == "" {
-			tag.Id = uuid.New().String()
+		if node.Core.Id == "" {
+			node.Core.Id = uuid.New().String()
 		}
-		if err := r.Db.FirstOrCreate(tag, Tag{Id: tag.Id}).Error; err != nil {
+		err := r.Db.Save(&node.Core).Error
+		if err != nil {
 			return err
 		}
-		nodeTag := &NodeTag{
-			NodeId: node.Core.Id,
-			TagId:  tag.Id,
-		}
-		if err := r.Db.Create(nodeTag).Error; err != nil {
+
+		if err := r.Db.Model(&NodeTag{}).Where("node_id = ?", node.Core.Id).Delete(&NodeTag{}).Error; err != nil {
 			return err
 		}
-	}
+		for _, tag := range node.Tags {
+			if tag.Id == "" {
+				tag.Id = uuid.New().String()
+			}
+			if err := r.Db.FirstOrCreate(tag, Tag{Id: tag.Id}).Error; err != nil {
+				return err
+			}
+			nodeTag := &NodeTag{
+				NodeId: node.Core.Id,
+				TagId:  tag.Id,
+			}
+			if err := r.Db.Create(nodeTag).Error; err != nil {
+				return err
+			}
+		}
 
-	kvRepo := &KVRepository{DB: r.Db}
-	if err := kvRepo.DeleteAll(node.Core.Id); err != nil {
-		return err
-	}
-	for _, kv := range node.KV {
-		kv.NodeId = node.Core.Id
-		if err := kvRepo.Set(kv); err != nil {
+		kvRepo := &KVRepository{DB: r.Db}
+		if err := kvRepo.DeleteAll(node.Core.Id); err != nil {
 			return err
 		}
-	}
+		for _, kv := range node.KV {
+			kv.NodeId = node.Core.Id
+			if err := kvRepo.Set(kv); err != nil {
+				return err
+			}
+		}
 
-	return nil
-})
+		return nil
+	})
 }
 
 func (r *Repository) Delete(nodeId string) error {
@@ -102,7 +113,7 @@ func (r *Repository) Delete(nodeId string) error {
 }
 
 func (r *Repository) Query() *NodeQuery {
-	return Query(r.Db)
+	return Query(r.Db, r.Log)
 }
 
 func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {

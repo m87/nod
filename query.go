@@ -2,6 +2,7 @@ package nod
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,6 +21,7 @@ type StringFilter struct {
 }
 
 type NodeQuery struct {
+	log 			 *slog.Logger
 	db           *gorm.DB
 	nodeIds      []string
 	parentIds    []string
@@ -39,9 +41,10 @@ type NodeQuery struct {
 	pageSize     int
 }
 
-func Query(db *gorm.DB) *NodeQuery {
+func Query(db *gorm.DB, log *slog.Logger) *NodeQuery {
 	return &NodeQuery{
 		db: db,
+		log: log,
 	}
 }
 
@@ -201,16 +204,10 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 
 func (q *NodeQuery) FindAll() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
-	fmt.Println("Debug: Starting FindAll with filters")
-	fmt.Println("Debug: nodeIds =", q.nodeIds)
-	fmt.Println("Debug: parentIds =", q.parentIds)
-	fmt.Println("Debug: namespaceIds =", q.namespaceIds)
-	fmt.Println("Debug: name filter =", q.name)
-	fmt.Println("Debug: type filter =", q.type_)
-	fmt.Println("Debug: kind filter =", q.kind)
-	fmt.Println("Debug: status filter =", q.status)
-	fmt.Println("Debug: createdDate filter =", q.createdDate)
-	fmt.Println("Debug: updatedDate filter =", q.updatedDate)
+  q.log.Debug("NodeQuery FindAll: starting query")
+	q.log.Debug("NodeQuery FindAll: applying common filters")
+	q.log.Debug(fmt.Sprintf("NodeQuery FindAll: current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
+		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.exludeRoot))
 
 	db = ApplyCommonFilters(db, q)
 
@@ -227,13 +224,16 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		return nil, err
 	}
 
+	q.log.Debug("NodeQuery FindAll: retrieved node cores", slog.Int("count", len(nodeCores)))
 	var nodes []*Node
 	for _, nc := range nodeCores {
 		nodes = append(nodes, &Node{
 			Core: nc})
 	}
+	q.log.Debug("NodeQuery FindAll: constructed nodes", slog.Int("count", len(nodes)))
 
 	if q.includeTags {
+		q.log.Debug("NodeQuery FindAll: loading tags for nodes")
 		tagsByNode, err := loadTagsByNode(q.db, nodes)
 		if err != nil {
 			return nil, err
@@ -241,9 +241,11 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		for _, n := range nodes {
 			n.Tags = tagsByNode[n.Core.Id]
 		}
+		q.log.Debug("NodeQuery FindAll: loaded tags for nodes")
 	}
 
 	if q.includeKV {
+		q.log.Debug("NodeQuery FindAll: loading KV for nodes")
 		nodeIds := make([]string, 0, len(nodes))
 		for _, n := range nodes {
 			nodeIds = append(nodeIds, n.Core.Id)
@@ -255,6 +257,7 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		for _, n := range nodes {
 			n.KV = kvsByNode[n.Core.Id]
 		}
+		q.log.Debug("NodeQuery FindAll: loaded KV for nodes")
 	}
 
 	return nodes, nil
