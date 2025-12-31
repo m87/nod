@@ -16,3 +16,10 @@ func New(logger *slog.Logger) *Client {
 		log: logger,
 	}
 }
+
+func PtrVal[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
