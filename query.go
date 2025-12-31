@@ -207,7 +207,7 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
   q.log.Debug("NodeQuery FindAll: starting query")
 	q.log.Debug("NodeQuery FindAll: applying common filters")
 	q.log.Debug(fmt.Sprintf("NodeQuery FindAll: current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
-		q.nodeIds, q.parentIds, q.namespaceIds, PtrVal(q.name), PtrVal(q.type_), PtrVal(q.kind), PtrVal(q.status), PtrVal(q.createdDate), PtrVal(q.updatedDate), q.onlyRoots, q.exludeRoot))
+		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.exludeRoot))
 
 	db = ApplyCommonFilters(db, q)
 
