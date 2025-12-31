@@ -32,6 +32,7 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 		txRepo := &Repository{
 			Db:   tx,
 			Node: &NodeRepository{DB: tx},
+			Log:	r.Log,
 		}
 		r.Log.Debug(">> execute function in transaction")
 		err := fc(txRepo)
