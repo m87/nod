@@ -7,8 +7,8 @@ import (
 )
 
 type Content struct {
-	NodeId    string    `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
-	Key       string    `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
+	NodeId    string    `gorm:"type:char(36);primaryKey;index:idx_content_node_id,priority:1"`
+	Key       string    `gorm:"type:text;primaryKey;index:idx_content_key,priority:2"`
 	Value     *string   `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"type:datetime;not null;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"type:datetime;not null;autoUpdateTime"`
