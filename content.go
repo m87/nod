@@ -37,3 +37,10 @@ func (r *ContentRepository) GetAllForNodes(nodeIds []string) (map[string]map[str
 	return result, nil
 }
 
+func (r *ContentRepository) Save(content *Content) error {
+	return r.DB.Save(content).Error
+}
+
+func (r *ContentRepository) DeleteAll(nodeId string) error {
+	return r.DB.Delete(&Content{}, "node_id = ?", nodeId).Error
+}

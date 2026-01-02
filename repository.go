@@ -86,6 +86,17 @@ func (r *Repository) Save(node *Node) error {
 			}
 		}
 
+		contentRepo := &ContentRepository{DB: r.Db}
+		if err := contentRepo.DeleteAll(node.Core.Id); err != nil {
+			return err
+		}
+		for _, content := range node.Content {
+			content.NodeId = node.Core.Id
+			if err := contentRepo.Save(content); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }
