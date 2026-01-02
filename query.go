@@ -49,6 +49,22 @@ func Query(db *gorm.DB, log *slog.Logger) *NodeQuery {
 	}
 }
 
+func NewStringFilter(equals, contains, startsWith, endsWith *string) *StringFilter {
+	return &StringFilter{
+		Equals:     equals,
+		Contains:   contains,
+		StartsWith: startsWith,
+		EndsWith:   endsWith,
+	}
+}
+
+func NewTimeFilter(from, to *time.Time) *TimeFilter {
+	return &TimeFilter{
+		From: from,
+		To:   to,
+	}
+}	
+
 func (q *NodeQuery) Roots() *NodeQuery {
 	q.onlyRoots = true
 	return q
