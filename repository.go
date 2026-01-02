@@ -12,6 +12,7 @@ type Node struct {
 	Core NodeCore
 	Tags []*Tag
 	KV   map[string]*KV
+	Content map[string]*Content
 }
 
 type Repository struct {

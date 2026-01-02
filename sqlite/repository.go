@@ -30,7 +30,7 @@ func initDB(log *slog.Logger, path string) *gorm.DB {
 	log.Debug("<< foreign keys enabled")
 
 	log.Debug(">> migrate database")
-	err = db.AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{})
+	err = db.AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{}, &nod.Content{})
 	if err != nil {
 		panic("failed to migrate database")
 	}

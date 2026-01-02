@@ -34,6 +34,7 @@ type NodeQuery struct {
 	updatedDate  *TimeFilter
 	includeTags  bool
 	includeKV    bool
+	includeContent bool
 	exludeRoot   bool
 	onlyRoots		 bool
 	limit        int
@@ -95,6 +96,11 @@ func (q *NodeQuery) Tags() *NodeQuery {
 
 func (q *NodeQuery) KV() *NodeQuery {
 	q.includeKV = true
+	return q
+}
+
+func (q *NodeQuery) Content() *NodeQuery {
+	q.includeContent = true
 	return q
 }
 
@@ -260,6 +266,22 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		q.log.Debug("NodeQuery FindAll: loaded KV for nodes")
 	}
 
+	if q.includeContent {
+		q.log.Debug("NodeQuery FindAll: loading Content for nodes")
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range nodes {
+			n.Content = contentsByNode[n.Core.Id]
+		}
+		q.log.Debug("NodeQuery FindAll: loaded Content for nodes")
+	}
+
 	return nodes, nil
 }
 
@@ -361,6 +383,20 @@ SELECT * FROM tree;
 		}
 		for i, n := range nodes {
 			nodes[i].KV = kvsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeContent {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].Content = contentsByNode[n.Core.Id]
 		}
 	}
 
@@ -467,6 +503,20 @@ SELECT * FROM path;
 		}
 		for i, n := range nodes {
 			nodes[i].KV = kvsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeContent {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].Content = contentsByNode[n.Core.Id]
 		}
 	}
 
