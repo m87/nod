@@ -35,18 +35,22 @@ type NodeQuery struct {
 	includeTags    bool
 	includeKV      bool
 	includeContent bool
-	exludeRoot     bool
+	excludeRoot     bool
 	onlyRoots      bool
 	limit          int
 	page           int
 	pageSize       int
 }
 
-func Query(db *gorm.DB, log *slog.Logger) *NodeQuery {
+func NewNodeQuery(db *gorm.DB, log *slog.Logger) *NodeQuery {
 	return &NodeQuery{
 		db:  db,
 		log: log,
 	}
+}
+
+func Query(db *gorm.DB, log *slog.Logger) *NodeQuery {
+	return NewNodeQuery(db, log)
 }
 
 func NewStringFilter(equals, contains, startsWith, endsWith *string) *StringFilter {
@@ -63,6 +67,14 @@ func NewTimeFilter(from, to *time.Time) *TimeFilter {
 		From: from,
 		To:   to,
 	}
+}
+
+func (q *NodeQuery) Clone() *NodeQuery {
+	clone := *q
+	clone.nodeIds = append([]string{}, q.nodeIds...)
+	clone.parentIds = append([]string{}, q.parentIds...)
+	clone.namespaceIds = append([]string{}, q.namespaceIds...)
+	return &clone
 }
 
 func StringEquals(value string) *StringFilter { 
@@ -99,7 +111,7 @@ func (q *NodeQuery) Roots() *NodeQuery {
 }
 
 func (q *NodeQuery) ExcludeRoot() *NodeQuery {
-	q.exludeRoot = true
+	q.excludeRoot = true
 	return q
 }
 
@@ -222,7 +234,7 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 	if q.onlyRoots {
 		db = db.Where("parent_id IS NULL or parent_id = \"\"")
 	}
-	if q.exludeRoot {
+	if q.excludeRoot {
 		db = db.Where("parent_id IS NOT NULL")
 	}
 	if len(q.parentIds) > 0 {
@@ -254,7 +266,7 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 
 func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
 	q.log.Debug(fmt.Sprintf("NodeQuery current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
-		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.exludeRoot))
+		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.excludeRoot))
 
 	db = ApplyCommonFilters(db, q)
 
@@ -269,7 +281,7 @@ func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-func (q *NodeQuery) FindAll() ([]*Node, error) {
+func (q *NodeQuery) List() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
 	q.log.Debug("NodeQuery FindAll: starting query")
 	db = q.ApplyConditions(db)
@@ -334,8 +346,8 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 	return nodes, nil
 }
 
-func (q *NodeQuery) Find() (*Node, error) {
-	nodes, err := q.Limit(1).FindAll()
+func (q *NodeQuery) First() (*Node, error) {
+	nodes, err := q.Limit(1).List()
 	if err != nil {
 		return nil, err
 	}
@@ -357,10 +369,10 @@ func (q *NodeQuery) Count() (int64, error) {
 	return count, nil
 }
 
-func (q *NodeQuery) Decendants(onlyRoots bool) ([]*TreeNode, error) {
+func (q *NodeQuery) Descendants(onlyRoots bool) ([]*TreeNode, error) {
 	trees := make([]*TreeNode, 0)
 
-	nodes, err := q.FindAll()
+	nodes, err := q.List()
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +391,7 @@ func (q *NodeQuery) Decendants(onlyRoots bool) ([]*TreeNode, error) {
 	return trees, nil
 }
 
-func (q *NodeQuery) DecendantTree(rootID string) (*TreeNode, error) {
+func (q *NodeQuery) DescendantTree(rootID string) (*TreeNode, error) {
 	return q.buildTree(rootID)
 }
 
@@ -483,7 +495,7 @@ SELECT * FROM tree;
 func (q *NodeQuery) Ancestors() ([]*TreeNode, error) {
 	trees := make([]*TreeNode, 0)
 
-	nodes, err := q.FindAll()
+	nodes, err := q.List()
 	if err != nil {
 		return nil, err
 	}
@@ -607,8 +619,18 @@ SELECT * FROM path;
 	return root, nil
 }
 
-func (q *NodeQuery) HasChildren(parents []NodeCore) bool {
+func (q *NodeQuery) HasChildren() bool {
 	db := q.db.Model(&NodeCore{})
+  db = q.ApplyConditions(db)
+	var parents []NodeCore
+	if err := db.Find(&parents).Error; err != nil {
+		return false
+	}
+	if len(parents) == 0 {
+		return false
+	}
+
+	db = q.db.Model(&NodeCore{})
 	db = db.Where("parent_id IN ?", func() []string {
 		ids := make([]string, 0, len(parents))
 		for _, p := range parents {
@@ -629,12 +651,11 @@ func (q *NodeQuery) Delete() error {
 	q.log.Debug("NodeQuery Delete: starting query")
 	db = q.ApplyConditions(db)
 
-	var nodeCores []NodeCore
-
-	if q.HasChildren(nodeCores) {
+	if q.HasChildren() {
 		return fmt.Errorf("cannot delete nodes that have children")
 	}
 
+	var nodeCores []NodeCore
 	if err := db.Delete(&nodeCores).Error; err != nil {
 		return err
 	}
