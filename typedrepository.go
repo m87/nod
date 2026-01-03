@@ -15,6 +15,15 @@ type TRepository[T any] struct {
 	Mapper NodeMapper[T]
 }
 
+func NewTRepository[T any](db *gorm.DB, log *slog.Logger, mapper NodeMapper[T]) *TRepository[T] {
+	return &TRepository[T]{
+		Db:   db,
+		Node: &NodeRepository{DB: db},
+		Log:  log,
+		Mapper: mapper,
+	}
+}
+
 func (r *TRepository[T]) Transaction(fc func(txRepo *TRepository[T]) error) error {
 	r.Log.Debug(">> new transaction")
 	return r.Db.Transaction(func(tx *gorm.DB) error {
