@@ -65,6 +65,34 @@ func NewTimeFilter(from, to *time.Time) *TimeFilter {
 	}
 }
 
+func StringEquals(value string) *StringFilter { 
+	return &StringFilter{Equals: &value}
+}
+
+func StringContains(value string) *StringFilter {
+	return &StringFilter{Contains: &value}
+}
+
+func StringStartsWith(value string) *StringFilter {
+	return &StringFilter{StartsWith: &value}
+}
+
+func StringEndsWith(value string) *StringFilter {
+	return &StringFilter{EndsWith: &value}
+}
+
+func TimeFrom(value time.Time) *TimeFilter {
+	return &TimeFilter{From: &value}
+}
+
+func TimeTo(value time.Time) *TimeFilter {
+	return &TimeFilter{To: &value}
+}
+
+func TimeBetween(from, to time.Time) *TimeFilter {
+	return &TimeFilter{From: &from, To: &to}
+}
+
 func (q *NodeQuery) Roots() *NodeQuery {
 	q.onlyRoots = true
 	return q
