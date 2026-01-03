@@ -21,30 +21,30 @@ type StringFilter struct {
 }
 
 type NodeQuery struct {
-	log 			 *slog.Logger
-	db           *gorm.DB
-	nodeIds      []string
-	parentIds    []string
-	namespaceIds []string
-	name         *StringFilter
-	type_        *StringFilter
-	kind         *StringFilter
-	status       *StringFilter
-	createdDate  *TimeFilter
-	updatedDate  *TimeFilter
-	includeTags  bool
-	includeKV    bool
+	log            *slog.Logger
+	db             *gorm.DB
+	nodeIds        []string
+	parentIds      []string
+	namespaceIds   []string
+	name           *StringFilter
+	type_          *StringFilter
+	kind           *StringFilter
+	status         *StringFilter
+	createdDate    *TimeFilter
+	updatedDate    *TimeFilter
+	includeTags    bool
+	includeKV      bool
 	includeContent bool
-	exludeRoot   bool
-	onlyRoots		 bool
-	limit        int
-	page         int
-	pageSize     int
+	exludeRoot     bool
+	onlyRoots      bool
+	limit          int
+	page           int
+	pageSize       int
 }
 
 func Query(db *gorm.DB, log *slog.Logger) *NodeQuery {
 	return &NodeQuery{
-		db: db,
+		db:  db,
 		log: log,
 	}
 }
@@ -63,7 +63,7 @@ func NewTimeFilter(from, to *time.Time) *TimeFilter {
 		From: from,
 		To:   to,
 	}
-}	
+}
 
 func (q *NodeQuery) Roots() *NodeQuery {
 	q.onlyRoots = true
@@ -192,7 +192,7 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 		db = db.Where("id IN ?", q.nodeIds)
 	}
 	if q.onlyRoots {
-		db = db.Where("parent_id IS NULL or parent_id = \"\"" )
+		db = db.Where("parent_id IS NULL or parent_id = \"\"")
 	}
 	if q.exludeRoot {
 		db = db.Where("parent_id IS NOT NULL")
@@ -224,11 +224,8 @@ func ApplyCommonFilters(db *gorm.DB, q *NodeQuery) *gorm.DB {
 	return db
 }
 
-func (q *NodeQuery) FindAll() ([]*Node, error) {
-	db := q.db.Model(&NodeCore{})
-  q.log.Debug("NodeQuery FindAll: starting query")
-	q.log.Debug("NodeQuery FindAll: applying common filters")
-	q.log.Debug(fmt.Sprintf("NodeQuery FindAll: current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
+func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
+	q.log.Debug(fmt.Sprintf("NodeQuery current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
 		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.exludeRoot))
 
 	db = ApplyCommonFilters(db, q)
@@ -240,6 +237,14 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 		offset := (q.page - 1) * q.pageSize
 		db = db.Offset(offset).Limit(q.pageSize)
 	}
+
+	return db
+}
+
+func (q *NodeQuery) FindAll() ([]*Node, error) {
+	db := q.db.Model(&NodeCore{})
+	q.log.Debug("NodeQuery FindAll: starting query")
+	db = q.ApplyConditions(db)
 
 	var nodeCores []NodeCore
 	if err := db.Find(&nodeCores).Error; err != nil {
@@ -572,4 +577,18 @@ SELECT * FROM path;
 		return nil, gorm.ErrRecordNotFound
 	}
 	return root, nil
+}
+
+func (q *NodeQuery) Delete() error {
+	db := q.db.Model(&NodeCore{})
+	q.log.Debug("NodeQuery Delete: starting query")
+	db = q.ApplyConditions(db)
+
+	var nodeCores []NodeCore
+	if err := db.Delete(&nodeCores).Error; err != nil {
+		return err
+	}
+
+	q.log.Debug("NodeQuery Delete: nodes deleted")
+	return nil
 }
