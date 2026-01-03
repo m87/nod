@@ -607,12 +607,34 @@ SELECT * FROM path;
 	return root, nil
 }
 
+func (q *NodeQuery) HasChildren(parents []NodeCore) bool {
+	db := q.db.Model(&NodeCore{})
+	db = db.Where("parent_id IN ?", func() []string {
+		ids := make([]string, 0, len(parents))
+		for _, p := range parents {
+			ids = append(ids, p.Id)
+		}
+		return ids
+	}())
+
+	var count int64
+	if err := db.Count(&count).Error; err != nil {
+		return false
+	}
+	return count > 0
+}
+
 func (q *NodeQuery) Delete() error {
 	db := q.db.Model(&NodeCore{})
 	q.log.Debug("NodeQuery Delete: starting query")
 	db = q.ApplyConditions(db)
 
 	var nodeCores []NodeCore
+
+	if q.HasChildren(nodeCores) {
+		return fmt.Errorf("cannot delete nodes that have children")
+	}
+
 	if err := db.Delete(&nodeCores).Error; err != nil {
 		return err
 	}
