@@ -9,15 +9,19 @@ import (
 )
 
 func NewRepository[T any](path string, log *slog.Logger) *nod.Repository[T] {
-	db := initDB(log, path)
+	db := InitDB(log, path)
 
+	return NewRepiositoryWithDB[T](db, log)
+}
+
+func NewRepiositoryWithDB[T any](db *gorm.DB, log *slog.Logger) *nod.Repository[T] {
 	return &nod.Repository[T]{
 		Db:   db,
 		Log:  log,
 	}
 }
 
-func initDB(log *slog.Logger, path string) *gorm.DB {
+func InitDB(log *slog.Logger, path string) *gorm.DB {
 	log.Debug(">> open database", slog.String("path", path))
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
