@@ -356,7 +356,7 @@ func (q *NodeQuery) List() ([]NodeModel, error) {
 
 	var results []NodeModel
 	for _, n := range nodes {
-	  mapper, err := q.mappers.ForNode(n)
+		mapper, err := q.mappers.ForNode(n)
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +401,7 @@ func (q *NodeQuery) Descendants(onlyRoots bool) ([]*TreeNode, error) {
 	}
 
 	for _, n := range nodes {
-		fmt.Println("Debug: Processing node ID =", n.Core.Id, "with Parent ID =", n.Core.ParentId)
+		q.log.Debug("Debug: Processing node ID =%v, with Parent ID =%v", n.Core.Id, n.Core.ParentId)
 		if !onlyRoots && (n.Core.ParentId == nil || *n.Core.ParentId == "") {
 			tree, err := q.buildTree(n.Core.Id)
 			if err != nil {
@@ -492,7 +492,7 @@ SELECT * FROM tree;
 
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
-	  mapper, err := q.mappers.ForNode(n)
+		mapper, err := q.mappers.ForNode(n)
 		if err != nil {
 			return nil, err
 		}
@@ -596,15 +596,15 @@ SELECT * FROM path;
 		}
 	}
 
-	fmt.Println("Debug: Building ancestor tree for childID =", childID)
-	fmt.Println("Debug: Retrieved nodes:")
+	q.log.Debug("Debug: Building ancestor tree for childID = %v", childID)
+	q.log.Debug("Debug: Retrieved nodes:")
 	for _, n := range nodes {
-		fmt.Printf("  Node ID: %s, Parent ID: %v\n", n.Core.Id, *n.Core.ParentId)
+		q.log.Debug("  Node ID: %v, Parent ID: %v\n", n.Core.Id, *n.Core.ParentId)
 	}
 
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
-	  mapper, err := q.mappers.ForNode(n)
+		mapper, err := q.mappers.ForNode(n)
 		if err != nil {
 			return nil, err
 		}
