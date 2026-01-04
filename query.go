@@ -20,7 +20,7 @@ type StringFilter struct {
 	EndsWith   *string
 }
 
-type NodeQuery[T NodeModel] struct {
+type NodeQuery struct {
 	log            *slog.Logger
 	db             *gorm.DB
 	nodeIds        []string
@@ -40,23 +40,23 @@ type NodeQuery[T NodeModel] struct {
 	limit          int
 	page           int
 	pageSize       int
-	mappers        *MapperRegistry[T]
+	mappers        *MapperRegistry
 }
 
-type TreeNode[T NodeModel] struct {
-	Node     *T
-	Children []*TreeNode[T]
+type TreeNode struct {
+	Node     NodeModel
+	Children []*TreeNode
 }
 
-func NewNodeQuery[T NodeModel](db *gorm.DB, log *slog.Logger, mappers *MapperRegistry[T]) *NodeQuery[T] {
-	return &NodeQuery[T]{
+func NewNodeQuery(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *NodeQuery {
+	return &NodeQuery{
 		db:      db,
 		log:     log,
 		mappers: mappers,
 	}
 }
 
-func (q *NodeQuery[T]) Clone() *NodeQuery[T] {
+func (q *NodeQuery) Clone() *NodeQuery {
 	clone := *q
 	clone.nodeIds = append([]string{}, q.nodeIds...)
 	clone.parentIds = append([]string{}, q.parentIds...)
@@ -108,98 +108,98 @@ func NewTimeFilter(from, to *time.Time) *TimeFilter {
 	}
 }
 
-func (q *NodeQuery[T]) Roots() *NodeQuery[T] {
+func (q *NodeQuery) Roots() *NodeQuery {
 	q.onlyRoots = true
 	return q
 }
 
-func (q *NodeQuery[T]) ExcludeRoot() *NodeQuery[T] {
+func (q *NodeQuery) ExcludeRoot() *NodeQuery {
 	q.excludeRoot = true
 	return q
 }
 
-func (q *NodeQuery[T]) NodeId(nodeId string) *NodeQuery[T] {
+func (q *NodeQuery) NodeId(nodeId string) *NodeQuery {
 	q.nodeIds = append(q.nodeIds, nodeId)
 	return q
 }
 
-func (q *NodeQuery[T]) ParentId(parentId string) *NodeQuery[T] {
+func (q *NodeQuery) ParentId(parentId string) *NodeQuery {
 	q.parentIds = append(q.parentIds, parentId)
 	return q
 }
 
-func (q *NodeQuery[T]) NamespaceId(namespaceId string) *NodeQuery[T] {
+func (q *NodeQuery) NamespaceId(namespaceId string) *NodeQuery {
 	q.namespaceIds = append(q.namespaceIds, namespaceId)
 	return q
 }
 
-func (q *NodeQuery[T]) NodeIds(nodeIds []string) *NodeQuery[T] {
+func (q *NodeQuery) NodeIds(nodeIds []string) *NodeQuery {
 	q.nodeIds = append(q.nodeIds, nodeIds...)
 	return q
 }
 
-func (q *NodeQuery[T]) ParentIds(parentIds []string) *NodeQuery[T] {
+func (q *NodeQuery) ParentIds(parentIds []string) *NodeQuery {
 	q.parentIds = append(q.parentIds, parentIds...)
 	return q
 }
 
-func (q *NodeQuery[T]) NamespaceIds(namespaceIds []string) *NodeQuery[T] {
+func (q *NodeQuery) NamespaceIds(namespaceIds []string) *NodeQuery {
 	q.namespaceIds = append(q.namespaceIds, namespaceIds...)
 	return q
 }
 
-func (q *NodeQuery[T]) Tags() *NodeQuery[T] {
+func (q *NodeQuery) Tags() *NodeQuery {
 	q.includeTags = true
 	return q
 }
 
-func (q *NodeQuery[T]) KV() *NodeQuery[T] {
+func (q *NodeQuery) KV() *NodeQuery {
 	q.includeKV = true
 	return q
 }
 
-func (q *NodeQuery[T]) Content() *NodeQuery[T] {
+func (q *NodeQuery) Content() *NodeQuery {
 	q.includeContent = true
 	return q
 }
 
-func (q *NodeQuery[T]) Limit(limit int) *NodeQuery[T] {
+func (q *NodeQuery) Limit(limit int) *NodeQuery {
 	q.limit = limit
 	return q
 }
 
-func (q *NodeQuery[T]) Page(page int, pageSize int) *NodeQuery[T] {
+func (q *NodeQuery) Page(page int, pageSize int) *NodeQuery {
 	q.page = page
 	q.pageSize = pageSize
 	return q
 }
 
-func (q *NodeQuery[T]) Name(filter *StringFilter) *NodeQuery[T] {
+func (q *NodeQuery) Name(filter *StringFilter) *NodeQuery {
 	q.name = filter
 	return q
 }
 
-func (q *NodeQuery[T]) Type(filter *StringFilter) *NodeQuery[T] {
+func (q *NodeQuery) Type(filter *StringFilter) *NodeQuery {
 	q.type_ = filter
 	return q
 }
 
-func (q *NodeQuery[T]) Kind(filter *StringFilter) *NodeQuery[T] {
+func (q *NodeQuery) Kind(filter *StringFilter) *NodeQuery {
 	q.kind = filter
 	return q
 }
 
-func (q *NodeQuery[T]) Status(filter *StringFilter) *NodeQuery[T] {
+func (q *NodeQuery) Status(filter *StringFilter) *NodeQuery {
 	q.status = filter
 	return q
 }
 
-func (q *NodeQuery[T]) CreatedDate(filter *TimeFilter) *NodeQuery[T] {
+func (q *NodeQuery) CreatedDate(filter *TimeFilter) *NodeQuery {
 	q.createdDate = filter
 	return q
 }
 
-func (q *NodeQuery[T]) UpdatedDate(filter *TimeFilter) *NodeQuery[T] {
+func (q *NodeQuery) UpdatedDate(filter *TimeFilter) *NodeQuery {
 	q.updatedDate = filter
 	return q
 }
@@ -230,7 +230,7 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 	return db
 }
 
-func ApplyCommonFilters[T NodeModel](db *gorm.DB, t *NodeQuery[T]) *gorm.DB {
+func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 	if len(t.nodeIds) > 0 {
 		db = db.Where("id IN ?", t.nodeIds)
 	}
@@ -267,7 +267,7 @@ func ApplyCommonFilters[T NodeModel](db *gorm.DB, t *NodeQuery[T]) *gorm.DB {
 	return db
 }
 
-func (q *NodeQuery[T]) ApplyConditions(db *gorm.DB) *gorm.DB {
+func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
 	q.log.Debug(fmt.Sprintf("TypedQuery current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, type_=%v, kind=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
 		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.type_, q.kind, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.excludeRoot))
 
@@ -284,7 +284,7 @@ func (q *NodeQuery[T]) ApplyConditions(db *gorm.DB) *gorm.DB {
 	return db
 }
 
-func (q *NodeQuery[T]) fetchNodes() ([]*Node, error) {
+func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
 	q.log.Debug("NodeQuery FindAll: starting query")
 	db = q.ApplyConditions(db)
@@ -348,13 +348,13 @@ func (q *NodeQuery[T]) fetchNodes() ([]*Node, error) {
 	return nodes, nil
 }
 
-func (q *NodeQuery[T]) List() ([]*T, error) {
+func (q *NodeQuery) List() ([]NodeModel, error) {
 	nodes, err := q.fetchNodes()
 	if err != nil {
 		return nil, err
 	}
 
-	var results []*T
+	var results []NodeModel
 	for _, n := range nodes {
 	  mapper, err := q.mappers.ForNode(n)
 		if err != nil {
@@ -369,7 +369,7 @@ func (q *NodeQuery[T]) List() ([]*T, error) {
 	return results, nil
 }
 
-func (q *NodeQuery[T]) First() (*T, error) {
+func (q *NodeQuery) First() (NodeModel, error) {
 	nodes, err := q.Limit(1).List()
 	if err != nil {
 		return nil, err
@@ -380,7 +380,7 @@ func (q *NodeQuery[T]) First() (*T, error) {
 	return nodes[0], nil
 }
 
-func (q *NodeQuery[T]) Count() (int64, error) {
+func (q *NodeQuery) Count() (int64, error) {
 	db := q.db.Model(&NodeCore{})
 
 	db = ApplyCommonFilters(db, q)
@@ -392,8 +392,8 @@ func (q *NodeQuery[T]) Count() (int64, error) {
 	return count, nil
 }
 
-func (q *NodeQuery[T]) Descendants(onlyRoots bool) ([]*TreeNode[T], error) {
-	trees := make([]*TreeNode[T], 0)
+func (q *NodeQuery) Descendants(onlyRoots bool) ([]*TreeNode, error) {
+	trees := make([]*TreeNode, 0)
 
 	nodes, err := q.fetchNodes()
 	if err != nil {
@@ -408,7 +408,7 @@ func (q *NodeQuery[T]) Descendants(onlyRoots bool) ([]*TreeNode[T], error) {
 				return nil, err
 			}
 
-			mappedTree := &TreeNode[T]{
+			mappedTree := &TreeNode{
 				Node:     tree.Node,
 				Children: tree.Children,
 			}
@@ -420,11 +420,11 @@ func (q *NodeQuery[T]) Descendants(onlyRoots bool) ([]*TreeNode[T], error) {
 	return trees, nil
 }
 
-func (q *NodeQuery[T]) DescendantTree(rootID string) (*TreeNode[T], error) {
+func (q *NodeQuery) DescendantTree(rootID string) (*TreeNode, error) {
 	return q.buildTree(rootID)
 }
 
-func (q *NodeQuery[T]) buildTree(rootID string) (*TreeNode[T], error) {
+func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
 	db := q.db.Model(&NodeCore{})
 	var nodeCores []NodeCore
 	var nodes []*Node
@@ -490,7 +490,7 @@ SELECT * FROM tree;
 		}
 	}
 
-	byID := make(map[string]*TreeNode[T], len(nodes))
+	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
 	  mapper, err := q.mappers.ForNode(n)
 		if err != nil {
@@ -501,12 +501,12 @@ SELECT * FROM tree;
 			return nil, err
 		}
 
-		byID[n.Core.Id] = &TreeNode[T]{
+		byID[n.Core.Id] = &TreeNode{
 			Node: mappedNode,
 		}
 	}
 
-	var root *TreeNode[T]
+	var root *TreeNode
 	for _, n := range nodes {
 		cur := byID[n.Core.Id]
 		if n.Core.Id == rootID {
@@ -530,7 +530,7 @@ SELECT * FROM tree;
 
 }
 
-func (q *NodeQuery[T]) buildAncestorTree(childID string) (*TreeNode[T], error) {
+func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
 	db := q.db.Model(&NodeCore{})
 	var nodeCores []NodeCore
 	var nodes []*Node
@@ -602,7 +602,7 @@ SELECT * FROM path;
 		fmt.Printf("  Node ID: %s, Parent ID: %v\n", n.Core.Id, *n.Core.ParentId)
 	}
 
-	byID := make(map[string]*TreeNode[T], len(nodes))
+	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
 	  mapper, err := q.mappers.ForNode(n)
 		if err != nil {
@@ -612,12 +612,12 @@ SELECT * FROM path;
 		if err != nil {
 			return nil, err
 		}
-		byID[n.Core.Id] = &TreeNode[T]{
+		byID[n.Core.Id] = &TreeNode{
 			Node: mappedNode,
 		}
 	}
 
-	var root *TreeNode[T]
+	var root *TreeNode
 	for _, n := range nodes {
 		cur := byID[n.Core.Id]
 		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
@@ -631,7 +631,7 @@ SELECT * FROM path;
 		}
 
 		if parent.Children == nil {
-			parent.Children = make([]*TreeNode[T], 0)
+			parent.Children = make([]*TreeNode, 0)
 		}
 		parent.Children = append(parent.Children, cur)
 	}
@@ -642,8 +642,8 @@ SELECT * FROM path;
 	return root, nil
 }
 
-func (q *NodeQuery[T]) Ancestors() ([]*TreeNode[T], error) {
-	trees := make([]*TreeNode[T], 0)
+func (q *NodeQuery) Ancestors() ([]*TreeNode, error) {
+	trees := make([]*TreeNode, 0)
 
 	nodes, err := q.fetchNodes()
 	if err != nil {
@@ -661,11 +661,11 @@ func (q *NodeQuery[T]) Ancestors() ([]*TreeNode[T], error) {
 	return trees, nil
 }
 
-func (q *NodeQuery[T]) AncestorTree(childID string) (*TreeNode[T], error) {
+func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) {
 	return q.buildAncestorTree(childID)
 }
 
-func (q *NodeQuery[T]) HasChildren() bool {
+func (q *NodeQuery) HasChildren() bool {
 	db := q.db.Model(&NodeCore{})
 	db = q.ApplyConditions(db)
 	var parents []NodeCore
@@ -692,7 +692,7 @@ func (q *NodeQuery[T]) HasChildren() bool {
 	return count > 0
 }
 
-func (q *NodeQuery[T]) Delete() error {
+func (q *NodeQuery) Delete() error {
 	db := q.db.Model(&NodeCore{})
 	q.log.Debug("NodeQuery Delete: starting query")
 	db = q.ApplyConditions(db)

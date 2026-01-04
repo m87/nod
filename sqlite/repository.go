@@ -8,8 +8,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewRepository[T nod.NodeModel](path string, log *slog.Logger, mappers *nod.MapperRegistry[T]) *nod.Repository[T] {
-	return &nod.Repository[T]{
+func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) *nod.Repository {
+	return &nod.Repository{
 		Db:   initDB(log, path),
 		Log:  log,
 		Mappers: mappers,

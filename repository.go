@@ -15,10 +15,10 @@ type Node struct {
 	Content map[string]*Content
 }
 
-type Repository[T NodeModel] struct {
+type Repository struct {
 	Db   *gorm.DB
 	Log  *slog.Logger
-	Mappers *MapperRegistry[T]
+	Mappers *MapperRegistry
 }
 
 type NodeModel interface {
@@ -26,9 +26,9 @@ type NodeModel interface {
 	Kind() string
 }
 
-type NodeMapper[T NodeModel] interface {
-	ToNode(*T) (*Node, error)       
-	FromNode(*Node) (*T, error)    
+type NodeMapper interface {
+	ToNode(model NodeModel) (*Node, error)       
+	FromNode(*Node) (NodeModel, error)    
 }
 
 type MapperKey struct {
@@ -36,22 +36,22 @@ type MapperKey struct {
 	Kind string
 }
 
-type MapperRegistry[T NodeModel] struct {
-	byKey map[MapperKey]NodeMapper[T]
+type MapperRegistry struct {
+	byKey map[MapperKey]NodeMapper
 }
 
-func NewMapperRegistry[T NodeModel]() *MapperRegistry[T] {
-	return &MapperRegistry[T]{
-		byKey: make(map[MapperKey]NodeMapper[T]),
+func NewMapperRegistry() *MapperRegistry {
+	return &MapperRegistry{
+		byKey: make(map[MapperKey]NodeMapper),
 	}
 }
 
-func (r *MapperRegistry[T]) Register(type_, kind string, mapper NodeMapper[T]) { 
-	key := MapperKey{Type: type_, Kind: kind}
-	r.byKey[key] = mapper
+func (m *MapperRegistry) Register(type_, kind string, mapper NodeMapper) *MapperRegistry {
+	m.byKey[MapperKey{Type: type_, Kind: kind}] = mapper
+	return m
 }
 
-func (r *MapperRegistry[T]) ForModel(model T) (NodeMapper[T], error) {
+func (r *MapperRegistry) ForModel(model NodeModel) (NodeMapper, error) {
 	key := MapperKey{Type: model.Type(), Kind: model.Kind()}
 	mapper, ok := r.byKey[key]
 	if !ok {
@@ -60,7 +60,7 @@ func (r *MapperRegistry[T]) ForModel(model T) (NodeMapper[T], error) {
 	return mapper, nil
 }
 
-func (r *MapperRegistry[T]) ForNode(n *Node) (NodeMapper[T], error) {
+func (r *MapperRegistry) ForNode(n *Node) (NodeMapper, error) {
 	key := MapperKey{Type: n.Core.Type, Kind: n.Core.Kind}
 	mapper, ok := r.byKey[key]
 	if !ok {
@@ -69,19 +69,19 @@ func (r *MapperRegistry[T]) ForNode(n *Node) (NodeMapper[T], error) {
 	return mapper, nil
 }
 
-func NewRepository[T NodeModel](db *gorm.DB, log *slog.Logger, mappers *MapperRegistry[T]) *Repository[T] {
-	return &Repository[T]{
+func NewRepository(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *Repository {
+	return &Repository{
 		Db:   db,
 		Log:  log,
 		Mappers: mappers,
 	}
 }
 
-func (r *Repository[T]) Transaction(fc func(txRepo *Repository[T]) error) error {
+func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 	r.Log.Debug(">> new transaction")
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		r.Log.Debug(">> new repository in transaction")
-		txRepo := &Repository[T]{
+		txRepo := &Repository{
 			Db:   tx,
 			Log:	r.Log,
 			Mappers: r.Mappers,
@@ -97,9 +97,9 @@ func (r *Repository[T]) Transaction(fc func(txRepo *Repository[T]) error) error 
 	})
 }
 
-func (r *Repository[T]) Save(model *T) error {
+func (r *Repository) Save(model NodeModel) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
-		mapper, err := r.Mappers.ForModel(*model)
+		mapper, err := r.Mappers.ForModel(model)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (r *Repository[T]) Save(model *T) error {
 	})
 }
 
-func (r *Repository[T]) Delete(nodeId string) error {
+func (r *Repository) Delete(nodeId string) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		count := int64(0)
 		db := tx.Model(&NodeCore{})
@@ -184,7 +184,7 @@ func (r *Repository[T]) Delete(nodeId string) error {
 	})
 }
 
-func (r *Repository[T]) Query() *NodeQuery[T] {
+func (r *Repository) Query() *NodeQuery {
 	return NewNodeQuery(r.Db, r.Log, r.Mappers)
 }
 
