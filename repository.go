@@ -15,25 +15,28 @@ type Node struct {
 	Content map[string]*Content
 }
 
-type Repository struct {
+type Repository[T any] struct {
 	Db   *gorm.DB
-	Node *NodeRepository
 	Log  *slog.Logger
+	Mapper NodeMapper[T]
 }
 
-type TreeNode struct {
-	Node     *Node
-	Children []*TreeNode
+func NewRepository[T any](db *gorm.DB, log *slog.Logger, mapper NodeMapper[T]) *Repository[T] {
+	return &Repository[T]{
+		Db:   db,
+		Log:  log,
+		Mapper: mapper,
+	}
 }
 
-func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
+func (r *Repository[T]) Transaction(fc func(txRepo *Repository[T]) error) error {
 	r.Log.Debug(">> new transaction")
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		r.Log.Debug(">> new repository in transaction")
-		txRepo := &Repository{
+		txRepo := &Repository[T]{
 			Db:   tx,
-			Node: &NodeRepository{DB: tx},
 			Log:	r.Log,
+			Mapper: r.Mapper,
 		}
 		r.Log.Debug(">> execute function in transaction")
 		err := fc(txRepo)
@@ -46,12 +49,16 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 	})
 }
 
-func (r *Repository) Save(node *Node) error {
+func (r *Repository[T]) Save(model *T) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
+		node, err := r.Mapper.ToNode(model)
+		if err != nil {
+			return err
+		}
 		if node.Core.Id == "" {
 			node.Core.Id = uuid.New().String()
 		}
-		err := r.Db.Save(&node.Core).Error
+		err = r.Db.Save(&node.Core).Error
 		if err != nil {
 			return err
 		}
@@ -101,7 +108,7 @@ func (r *Repository) Save(node *Node) error {
 	})
 }
 
-func (r *Repository) Delete(nodeId string) error {
+func (r *Repository[T]) Delete(nodeId string) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		count := int64(0)
 		db := tx.Model(&NodeCore{})
@@ -125,9 +132,10 @@ func (r *Repository) Delete(nodeId string) error {
 	})
 }
 
-func (r *Repository) Query() *NodeQuery {
-	return Query(r.Db, r.Log)
+func (r *Repository[T]) Query() *NodeQuery[T] {
+	return NewNodeQuery(r.Db, r.Log, r.Mapper)
 }
+
 
 func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 	ids := make([]string, 0, len(nodes))
