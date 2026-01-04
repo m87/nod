@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type NodeCore struct {
 	Id          string         `gorm:"type:char(36);primaryKey"`
 	NamespaceId *string        `gorm:"type:char(36);index:idx_namespace_id,priority:1;index"`
