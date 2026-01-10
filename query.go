@@ -665,6 +665,17 @@ func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) {
 	return q.buildAncestorTree(childID)
 }
 
+func (q *NodeQuery) Exists() (bool, error) {
+	db := q.db.Model(&NodeCore{})
+	db = q.ApplyConditions(db)
+
+	var count int64
+	if err := db.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (q *NodeQuery) HasChildren() bool {
 	db := q.db.Model(&NodeCore{})
 	db = q.ApplyConditions(db)
