@@ -3,7 +3,6 @@ package nod
 import (
 	"time"
 
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +14,6 @@ type NodeCore struct {
 	Kind        string         `gorm:"type:text;not null;index;default:''"`
 	Status      string         `gorm:"type:text;not null;index;default:''"`
 	Name        string         `gorm:"type:text;not null;index"`
-	Metadata    datatypes.JSON `gorm:"type:json;not null;default:'{}'"`
 	CreatedAt   time.Time      `gorm:"type:datetime;not null;autoCreateTime"`
 	UpdatedAt   time.Time      `gorm:"type:datetime;not null;autoUpdateTime"`
 }
