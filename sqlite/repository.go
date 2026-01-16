@@ -6,6 +6,7 @@ import (
 	"github.com/m87/nod"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	 _ "modernc.org/sqlite"
 )
 
 func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) *nod.Repository {
@@ -18,7 +19,10 @@ func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) *
 
 func initDB(log *slog.Logger, path string) *gorm.DB {
 	log.Debug(">> open database", slog.String("path", path))
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+	db, err := gorm.Open(sqlite.New(sqlite.Config{
+		DSN:                  path,
+		DriverName: 				 "sqlite",
+	}), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
