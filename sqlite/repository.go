@@ -20,7 +20,7 @@ func initDB(log *slog.Logger, path string) *gorm.DB {
 	log.Debug(">> open database", slog.String("path", path))
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		panic(err)
 	}
 	log.Debug("<< database opened")
 	log.Debug(">> enable foreign keys")
