@@ -179,8 +179,48 @@ func (q *NodeQuery) Name(filter *StringFilter) *NodeQuery {
 	return q
 }
 
+func (q *NodeQuery) NameEquals(value string) *NodeQuery {
+	q.name = &StringFilter{Equals: &value}
+	return q
+}
+
+func (q *NodeQuery) NameContains(value string) *NodeQuery {
+	q.name = &StringFilter{Contains: &value}
+	return q
+}
+
+func (q *NodeQuery) NameStartsWith(value string) *NodeQuery {
+	q.name = &StringFilter{StartsWith: &value}
+	return q
+}
+
+func (q *NodeQuery) NameEndsWith(value string) *NodeQuery {
+	q.name = &StringFilter{EndsWith: &value}
+	return q
+}
+
 func (q *NodeQuery) Type(filter *StringFilter) *NodeQuery {
 	q.type_ = filter
+	return q
+}
+
+func (q *NodeQuery) TypeEquals(value string) *NodeQuery {
+	q.type_ = &StringFilter{Equals: &value}
+	return q
+}
+
+func (q *NodeQuery) TypeContains(value string) *NodeQuery {
+	q.type_ = &StringFilter{Contains: &value}
+	return q
+}
+
+func (q *NodeQuery) TypeStartsWith(value string) *NodeQuery {
+	q.type_ = &StringFilter{StartsWith: &value}
+	return q
+}
+
+func (q *NodeQuery) TypeEndsWith(value string) *NodeQuery {
+	q.type_ = &StringFilter{EndsWith: &value}
 	return q
 }
 
@@ -189,8 +229,48 @@ func (q *NodeQuery) Kind(filter *StringFilter) *NodeQuery {
 	return q
 }
 
+func (q *NodeQuery) KindEquals(value string) *NodeQuery {
+	q.kind = &StringFilter{Equals: &value}
+	return q
+}
+
+func (q *NodeQuery) KindContains(value string) *NodeQuery {
+	q.kind = &StringFilter{Contains: &value}
+	return q
+}
+
+func (q *NodeQuery) KindStartsWith(value string) *NodeQuery {
+	q.kind = &StringFilter{StartsWith: &value}
+	return q
+}
+
+func (q *NodeQuery) KindEndsWith(value string) *NodeQuery {
+	q.kind = &StringFilter{EndsWith: &value}
+	return q
+}
+
 func (q *NodeQuery) Status(filter *StringFilter) *NodeQuery {
 	q.status = filter
+	return q
+}
+
+func (q *NodeQuery) StatusEquals(value string) *NodeQuery {
+	q.status = &StringFilter{Equals: &value}
+	return q
+}
+
+func (q *NodeQuery) StatusContains(value string) *NodeQuery {
+	q.status = &StringFilter{Contains: &value}
+	return q
+}
+
+func (q *NodeQuery) StatusStartsWith(value string) *NodeQuery {
+	q.status = &StringFilter{StartsWith: &value}
+	return q
+}
+
+func (q *NodeQuery) StatusEndsWith(value string) *NodeQuery {
+	q.status = &StringFilter{EndsWith: &value}
 	return q
 }
 
@@ -199,8 +279,50 @@ func (q *NodeQuery) CreatedDate(filter *TimeFilter) *NodeQuery {
 	return q
 }
 
+func (q *NodeQuery) CreatedDateFrom(from time.Time) *NodeQuery {
+	if q.createdDate == nil {
+		q.createdDate = &TimeFilter{}
+	}
+	q.createdDate.From = &from
+	return q
+}
+
+func (q *NodeQuery) CreatedDateTo(to time.Time) *NodeQuery {
+	if q.createdDate == nil {
+		q.createdDate = &TimeFilter{}
+	}
+	q.createdDate.To = &to
+	return q
+}
+
+func (q *NodeQuery) CreatedBetween(from, to time.Time) *NodeQuery {
+	q.createdDate = &TimeFilter{From: &from, To: &to}
+	return q
+}
+
 func (q *NodeQuery) UpdatedDate(filter *TimeFilter) *NodeQuery {
 	q.updatedDate = filter
+	return q
+}
+
+func (q *NodeQuery) UpdatedDateFrom(from time.Time) *NodeQuery {
+	if q.updatedDate == nil {
+		q.updatedDate = &TimeFilter{}
+	}
+	q.updatedDate.From = &from
+	return q
+}
+
+func (q *NodeQuery) UpdatedDateTo(to time.Time) *NodeQuery {
+	if q.updatedDate == nil {
+		q.updatedDate = &TimeFilter{}
+	}
+	q.updatedDate.To = &to
+	return q
+}
+
+func (q *NodeQuery) UpdatedBetween(from, to time.Time) *NodeQuery {
+	q.updatedDate = &TimeFilter{From: &from, To: &to}
 	return q
 }
 
