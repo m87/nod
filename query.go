@@ -718,6 +718,11 @@ SELECT * FROM path;
 		}
 	}
 
+	q.log.Debug("Debug: Building ancestor tree for childID = %v", childID)
+	q.log.Debug("Debug: Retrieved nodes:")
+	for _, n := range nodes {
+		q.log.Debug("  Node ID: %v, Parent ID: %v\n", n.Core.Id, SafePtrValue(n.Core.ParentId))
+	}
 
 	byID := make(map[string]*TreeNode, len(nodes))
 	for _, n := range nodes {
