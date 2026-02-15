@@ -91,7 +91,7 @@ func (r *TagRepository) Delete(tagId string) error {
 	})
 }
 
-func ConvertTagsToStringSlice(tags []Tag) []string {
+func ConvertTagsToStringSlice(tags []*Tag) []string {
 	result := make([]string, len(tags))
 	for i, tag := range tags {
 		result[i] = tag.Name
