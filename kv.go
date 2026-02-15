@@ -76,7 +76,7 @@ func (r *KVRepository) Delete(nodeId string, key string) error {
 	return r.DB.Delete(&KV{}, "node_id = ? AND key = ?", nodeId, key).Error
 }
 
-func ConvertToStringMap(kvs map[string]*KV) map[string]string {
+func ConvertKVToStringMap(kvs map[string]*KV) map[string]string {
 	result := make(map[string]string)
 	for key, kv := range kvs {
 		if kv.ValueText != nil {
