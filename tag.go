@@ -99,10 +99,10 @@ func ConvertTagsToStringSlice(tags []Tag) []string {
 	return result
 }
 
-func ConvertStringSliceToTags(names []string) []Tag {
-	result := make([]Tag, len(names))
+func ConvertStringSliceToTags(names []string) []*Tag {
+	result := make([]*Tag, len(names))
 	for i, name := range names {
-		result[i] = Tag{
+		result[i] = &Tag{
 			Name: name,
 		}
 	}
