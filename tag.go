@@ -90,3 +90,23 @@ func (r *TagRepository) Delete(tagId string) error {
 	  return r.DB.Delete(&Tag{}, "id = ?", tagId).Error
 	})
 }
+
+func ConvertTagsToStringSlice(tags []Tag) []string {
+	result := make([]string, len(tags))
+	for i, tag := range tags {
+		result[i] = tag.Name
+	}
+	return result
+}
+
+func ConvertStringSliceToTags(names []string) []Tag {
+	result := make([]Tag, len(names))
+	for i, name := range names {
+		result[i] = Tag{
+			Name: name,
+		}
+	}
+	return result
+}
+
+

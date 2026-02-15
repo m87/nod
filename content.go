@@ -44,3 +44,24 @@ func (r *ContentRepository) Save(content *Content) error {
 func (r *ContentRepository) DeleteAll(nodeId string) error {
 	return r.DB.Delete(&Content{}, "node_id = ?", nodeId).Error
 }
+
+func ConvertContentToStringMap(contents map[string]*Content) map[string]string {
+	result := make(map[string]string)
+	for key, content := range contents {
+		if content.Value != nil {
+			result[key] = *content.Value
+		}
+	}
+	return result
+}
+
+func ConvertStringMapToContent(data map[string]string) map[string]*Content {
+	result := make(map[string]*Content)
+	for key, value := range data {
+		result[key] = &Content{
+			Key:   key,
+			Value: &value,
+		}
+	}
+	return result
+}

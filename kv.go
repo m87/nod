@@ -75,3 +75,24 @@ func (r *KVRepository) DeleteAll(nodeId string) error {
 func (r *KVRepository) Delete(nodeId string, key string) error {
 	return r.DB.Delete(&KV{}, "node_id = ? AND key = ?", nodeId, key).Error
 }
+
+func ConvertToStringMap(kvs map[string]*KV) map[string]string {
+	result := make(map[string]string)
+	for key, kv := range kvs {
+		if kv.ValueText != nil {
+			result[key] = *kv.ValueText
+		}
+	}
+	return result
+}
+
+func ConvertStringMapToKV(data map[string]string) map[string]*KV {
+	result := make(map[string]*KV)
+	for key, value := range data {
+		result[key] = &KV{
+			Key:       key,
+			ValueText: &value,
+		}
+	}
+	return result
+}
