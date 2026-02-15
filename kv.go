@@ -12,7 +12,7 @@ type KV struct {
 	Key    string `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
 ValueText *string `gorm:"type:text"`
 	ValueNumber *float64 `gorm:"type:real"`
-	ValueInt		*int64   `gorm:"type:integer"`
+	ValueInt		*int   `gorm:"type:integer"`
 	ValueBool		*bool    `gorm:"type:boolean"`
 	ValueTime		*time.Time  `gorm:"type:datetime"`
 }
@@ -92,6 +92,27 @@ func ConvertStringMapToKV(data map[string]string) map[string]*KV {
 		result[key] = &KV{
 			Key:       key,
 			ValueText: &value,
+		}
+	}
+	return result
+}
+
+func ConvertKVToIntMap(kvs map[string]*KV) map[string]int {
+	result := make(map[string]int)
+	for key, kv := range kvs {
+		if kv.ValueInt != nil {
+			result[key] = *kv.ValueInt
+		}
+	}
+	return result
+}
+
+func ConvertIntMapToKV(data map[string]int) map[string]*KV {
+	result := make(map[string]*KV)
+	for key, value := range data {
+		result[key] = &KV{
+			Key:      key,
+			ValueInt: &value,
 		}
 	}
 	return result
