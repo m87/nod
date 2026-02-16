@@ -14,7 +14,7 @@ type erasedMapper[T any] struct {
 	mapper NodeMapper[T]
 }
 
-func (e *erasedMapper[T]) toNode(v any) (*Node, error) {
+func (e erasedMapper[T]) toNode(v any) (*Node, error) {
 	p, ok := v.(*T)
 	if !ok {
 		return nil, fmt.Errorf("mapper expected *%v, got %T", reflect.TypeOf((*T)(nil)).Elem(), v)
@@ -22,7 +22,7 @@ func (e *erasedMapper[T]) toNode(v any) (*Node, error) {
 	return e.mapper.ToNode(p)
 }
 
-func (e *erasedMapper[T]) fromNode(node *Node) (any, error) {
+func (e erasedMapper[T]) fromNode(node *Node) (any, error) {
 	return e.mapper.FromNode(node)
 }
 
