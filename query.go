@@ -55,11 +55,41 @@ func NewNodeQuery(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *NodeQ
 }
 
 func (q *NodeQuery) Clone() *NodeQuery {
-	clone := *q
+	clone := &NodeQuery{
+		db:             q.db,
+		log:            q.log,
+		mappers:        q.mappers,
+		includeTags:    q.includeTags,
+		includeKV:      q.includeKV,
+		includeContent: q.includeContent,
+		excludeRoot:    q.excludeRoot,
+		onlyRoots:      q.onlyRoots,
+		limit:          q.limit,
+		page:           q.page,
+		pageSize:       q.pageSize,
+	}
 	clone.nodeIds = append([]string{}, q.nodeIds...)
 	clone.parentIds = append([]string{}, q.parentIds...)
 	clone.namespaceIds = append([]string{}, q.namespaceIds...)
-	return &clone
+
+	if q.name != nil {
+		nameCopy := *q.name
+		clone.name = &nameCopy
+	}
+	if q.status != nil {
+		statusCopy := *q.status
+		clone.status = &statusCopy
+	}
+	if q.createdDate != nil {
+		createdCopy := *q.createdDate
+		clone.createdDate = &createdCopy
+	}
+	if q.updatedDate != nil {
+		updatedCopy := *q.updatedDate
+		clone.updatedDate = &updatedCopy
+	}
+
+	return clone
 }
 
 func StringEquals(value string) *StringFilter {
@@ -274,18 +304,32 @@ func (q *NodeQuery) UpdatedBetween(from, to time.Time) *NodeQuery {
 	return q
 }
 
+func escapeLike(s string) string {
+	r := ""
+	for _, c := range s {
+		if c == '%' || c == '_' || c == '\\' {
+			r += "\\"
+		}
+		r += string(c)
+	}
+	return r
+}
+
 func ApplyStringFilter(db *gorm.DB, field string, filter *StringFilter) *gorm.DB {
 	if filter.Equals != nil {
 		db = db.Where(field+" = ?", *filter.Equals)
 	}
 	if filter.Contains != nil {
-		db = db.Where(field+" LIKE ?", "%"+*filter.Contains+"%")
+		escaped := escapeLike(*filter.Contains)
+		db = db.Where(field+" LIKE ? ESCAPE '\\'", "%"+escaped+"%")
 	}
 	if filter.StartsWith != nil {
-		db = db.Where(field+" LIKE ?", *filter.StartsWith+"%")
+		escaped := escapeLike(*filter.StartsWith)
+		db = db.Where(field+" LIKE ? ESCAPE '\\'", escaped+"%")
 	}
 	if filter.EndsWith != nil {
-		db = db.Where(field+" LIKE ?", "%"+*filter.EndsWith)
+		escaped := escapeLike(*filter.EndsWith)
+		db = db.Where(field+" LIKE ? ESCAPE '\\'", "%"+escaped)
 	}
 	return db
 }
@@ -332,8 +376,7 @@ func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 }
 
 func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
-	q.log.Debug(fmt.Sprintf("TypedQuery current filters: nodeIds=%v, parentIds=%v, namespaceIds=%v, name=%v, status=%v, createdDate=%v, updatedDate=%v, onlyRoots=%v, excludeRoot=%v",
-		q.nodeIds, q.parentIds, q.namespaceIds, q.name, q.status, q.createdDate, q.updatedDate, q.onlyRoots, q.excludeRoot))
+	q.log.Debug("TypedQuery current filters", "nodeIds", q.nodeIds, "parentIds", q.parentIds, "namespaceIds", q.namespaceIds, "name", q.name, "status", q.status, "createdDate", q.createdDate, "updatedDate", q.updatedDate, "onlyRoots", q.onlyRoots, "excludeRoot", q.excludeRoot)
 
 	db = ApplyCommonFilters(db, q)
 
@@ -359,7 +402,7 @@ func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 	}
 
 	q.log.Debug("NodeQuery FindAll: retrieved node cores", slog.Int("count", len(nodeCores)))
-	var nodes []*Node
+	nodes := make([]*Node, 0, len(nodeCores))
 	for _, nc := range nodeCores {
 		nodes = append(nodes, &Node{
 			Core: nc})
@@ -435,15 +478,15 @@ func (q *NodeQuery) Exists() (bool, error) {
 	return count > 0, nil
 }
 
-func (q *NodeQuery) HasChildren() bool {
+func (q *NodeQuery) HasChildren() (bool, error) {
 	db := q.db.Model(&NodeCore{})
 	db = q.ApplyConditions(db)
 	var parents []NodeCore
 	if err := db.Find(&parents).Error; err != nil {
-		return false
+		return false, err
 	}
 	if len(parents) == 0 {
-		return false
+		return false, nil
 	}
 
 	db = q.db.Model(&NodeCore{})
@@ -457,9 +500,9 @@ func (q *NodeQuery) HasChildren() bool {
 
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
-		return false
+		return false, err
 	}
-	return count > 0
+	return count > 0, nil
 }
 
 func (q *NodeQuery) Delete() error {
@@ -467,7 +510,9 @@ func (q *NodeQuery) Delete() error {
 	q.log.Debug("NodeQuery Delete: starting query")
 	db = q.ApplyConditions(db)
 
-	if q.HasChildren() {
+	if hasChildren, err := q.HasChildren(); err != nil {
+		return err
+	} else if hasChildren {
 		return fmt.Errorf("cannot delete nodes that have children")
 	}
 
@@ -494,6 +539,11 @@ func (q *NodeQuery) First() (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if len(nodes) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
 	return nodes[0], nil
 }
 
@@ -506,7 +556,7 @@ func (q *NodeQuery) Descendants(onlyRoots bool) ([]*TreeNode, error) {
 	}
 
 	for _, n := range nodes {
-		q.log.Debug("Debug: Processing node ID =%v, with Parent ID =%v", n.Core.Id, n.Core.ParentId)
+		q.log.Debug("Processing node", "id", n.Core.Id, "parent_id", n.Core.ParentId)
 		if !onlyRoots && (n.Core.ParentId == nil || *n.Core.ParentId == "") {
 			tree, err := q.buildTree(n.Core.Id)
 			if err != nil {
@@ -529,10 +579,8 @@ func (q *NodeQuery) DescendantTree(rootID string) (*TreeNode, error) {
 	return q.buildTree(rootID)
 }
 
-func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
+func (q *NodeQuery) fetchDescendantNodes(rootID string) ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
-	var nodeCores []NodeCore
-	var nodes []*Node
 
 	sql := `
 WITH RECURSIVE tree AS (
@@ -543,6 +591,7 @@ WITH RECURSIVE tree AS (
 )
 SELECT * FROM tree;
 `
+	var nodeCores []NodeCore
 	if err := db.Raw(sql, rootID).Scan(&nodeCores).Error; err != nil {
 		return nil, err
 	}
@@ -550,10 +599,9 @@ SELECT * FROM tree;
 		return nil, gorm.ErrRecordNotFound
 	}
 
+	nodes := make([]*Node, 0, len(nodeCores))
 	for _, nc := range nodeCores {
-		nodes = append(nodes, &Node{
-			Core: nc,
-		})
+		nodes = append(nodes, &Node{Core: nc})
 	}
 
 	if q.includeTags {
@@ -561,38 +609,46 @@ SELECT * FROM tree;
 		if err != nil {
 			return nil, err
 		}
-
 		for _, n := range nodes {
 			n.Tags = tagsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeKV {
-		nodeIds := make([]string, 0, len(nodes))
+		ids := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
+			ids = append(ids, n.Core.Id)
 		}
-		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(ids)
 		if err != nil {
 			return nil, err
 		}
-		for i, n := range nodes {
-			nodes[i].KV = kvsByNode[n.Core.Id]
+		for _, n := range nodes {
+			n.KV = kvsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeContent {
-		nodeIds := make([]string, 0, len(nodes))
+		ids := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
+			ids = append(ids, n.Core.Id)
 		}
-		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(ids)
 		if err != nil {
 			return nil, err
 		}
-		for i, n := range nodes {
-			nodes[i].Content = contentsByNode[n.Core.Id]
+		for _, n := range nodes {
+			n.Content = contentsByNode[n.Core.Id]
 		}
+	}
+
+	return nodes, nil
+}
+
+func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
+	nodes, err := q.fetchDescendantNodes(rootID)
+	if err != nil {
+		return nil, err
 	}
 
 	byID := make(map[string]*TreeNode, len(nodes))
@@ -626,10 +682,8 @@ SELECT * FROM tree;
 
 }
 
-func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
+func (q *NodeQuery) fetchAncestorNodes(childID string) ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
-	var nodeCores []NodeCore
-	var nodes []*Node
 
 	sql := `
 WITH RECURSIVE path AS (
@@ -640,6 +694,7 @@ WITH RECURSIVE path AS (
 )
 SELECT * FROM path;
 `
+	var nodeCores []NodeCore
 	if err := db.Raw(sql, childID).Scan(&nodeCores).Error; err != nil {
 		return nil, err
 	}
@@ -647,10 +702,9 @@ SELECT * FROM path;
 		return nil, gorm.ErrRecordNotFound
 	}
 
+	nodes := make([]*Node, 0, len(nodeCores))
 	for _, nc := range nodeCores {
-		nodes = append(nodes, &Node{
-			Core: nc,
-		})
+		nodes = append(nodes, &Node{Core: nc})
 	}
 
 	if q.includeTags {
@@ -658,41 +712,49 @@ SELECT * FROM path;
 		if err != nil {
 			return nil, err
 		}
-
 		for _, n := range nodes {
 			n.Tags = tagsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeKV {
-		nodeIds := make([]string, 0, len(nodes))
+		ids := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
+			ids = append(ids, n.Core.Id)
 		}
-		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(ids)
 		if err != nil {
 			return nil, err
 		}
-		for i, n := range nodes {
-			nodes[i].KV = kvsByNode[n.Core.Id]
+		for _, n := range nodes {
+			n.KV = kvsByNode[n.Core.Id]
 		}
 	}
 
 	if q.includeContent {
-		nodeIds := make([]string, 0, len(nodes))
+		ids := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
+			ids = append(ids, n.Core.Id)
 		}
-		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(ids)
 		if err != nil {
 			return nil, err
 		}
-		for i, n := range nodes {
-			nodes[i].Content = contentsByNode[n.Core.Id]
+		for _, n := range nodes {
+			n.Content = contentsByNode[n.Core.Id]
 		}
 	}
 
-	q.log.Debug("Debug: Building ancestor tree for childID = %v", childID)
+	return nodes, nil
+}
+
+func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
+	nodes, err := q.fetchAncestorNodes(childID)
+	if err != nil {
+		return nil, err
+	}
+
+	q.log.Debug("Debug: Building ancestor tree for childID = ", childID)
 	q.log.Debug("Debug: Retrieved nodes:")
 	for _, n := range nodes {
 		q.log.Debug("  Node ID: %v, Parent ID: %v\n", n.Core.Id, SafePtrValue(n.Core.ParentId))

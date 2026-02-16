@@ -6,15 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type KV struct {
-	NodeId string `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
-	Key    string `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
-ValueText *string `gorm:"type:text"`
-	ValueNumber *float64 `gorm:"type:real"`
-	ValueInt		*int   `gorm:"type:integer"`
-	ValueBool		*bool    `gorm:"type:boolean"`
-	ValueTime		*time.Time  `gorm:"type:datetime"`
+	NodeId      string     `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
+	Key         string     `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
+	ValueText   *string    `gorm:"type:text"`
+	ValueNumber *float64   `gorm:"type:real"`
+	ValueInt    *int       `gorm:"type:integer"`
+	ValueBool   *bool      `gorm:"type:boolean"`
+	ValueTime   *time.Time `gorm:"type:datetime"`
 }
 
 type KVRepository struct {
@@ -66,7 +65,7 @@ func (r *KVRepository) GetAllForNodes(nodeIds []string) (map[string]map[string]*
 	}
 
 	return result, nil
-}	
+}
 
 func (r *KVRepository) DeleteAll(nodeId string) error {
 	return r.DB.Delete(&KV{}, "node_id = ?", nodeId).Error
