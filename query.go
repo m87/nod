@@ -41,14 +41,9 @@ type NodeQuery struct {
 	mappers        *MapperRegistry
 }
 
-type TypedTreeNode[T any] struct {
-	Node     *T
-	Children []*TypedTreeNode[T]
-}
-
-type RawTreeNode struct {
+type TreeNode struct {
 	Node     *Node
-	Children []*RawTreeNode
+	Children []*TreeNode
 }
 
 func NewNodeQuery(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *NodeQuery {
@@ -483,4 +478,277 @@ func (q *NodeQuery) Delete() error {
 
 	q.log.Debug("NodeQuery Delete: nodes deleted")
 	return nil
+}
+
+func (q *NodeQuery) List() ([]*Node, error) {
+	nodes, err := q.fetchNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
+}
+
+func (q *NodeQuery) First() (*Node, error) {
+	nodes, err := q.Limit(1).List()
+	if err != nil {
+		return nil, err
+	}
+	return nodes[0], nil
+}
+
+func (q *NodeQuery) Descendants(onlyRoots bool) ([]*TreeNode, error) {
+	trees := make([]*TreeNode, 0)
+
+	nodes, err := q.fetchNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, n := range nodes {
+		q.log.Debug("Debug: Processing node ID =%v, with Parent ID =%v", n.Core.Id, n.Core.ParentId)
+		if !onlyRoots && (n.Core.ParentId == nil || *n.Core.ParentId == "") {
+			tree, err := q.buildTree(n.Core.Id)
+			if err != nil {
+				return nil, err
+			}
+
+			mappedTree := &TreeNode{
+				Node:     tree.Node,
+				Children: tree.Children,
+			}
+
+			trees = append(trees, mappedTree)
+		}
+	}
+
+	return trees, nil
+}
+
+func (q *NodeQuery) DescendantTree(rootID string) (*TreeNode, error) {
+	return q.buildTree(rootID)
+}
+
+func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
+	db := q.db.Model(&NodeCore{})
+	var nodeCores []NodeCore
+	var nodes []*Node
+
+	sql := `
+WITH RECURSIVE tree AS (
+  SELECT * FROM node_cores WHERE id = ?
+  UNION ALL
+  SELECT n.* FROM node_cores n
+  JOIN tree t ON n.parent_id = t.id
+)
+SELECT * FROM tree;
+`
+	if err := db.Raw(sql, rootID).Scan(&nodeCores).Error; err != nil {
+		return nil, err
+	}
+	if len(nodeCores) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, nc := range nodeCores {
+		nodes = append(nodes, &Node{
+			Core: nc,
+		})
+	}
+
+	if q.includeTags {
+		tagsByNode, err := loadTagsByNode(q.db, nodes)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, n := range nodes {
+			n.Tags = tagsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeKV {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].KV = kvsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeContent {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].Content = contentsByNode[n.Core.Id]
+		}
+	}
+
+	byID := make(map[string]*TreeNode, len(nodes))
+	for _, n := range nodes {
+		byID[n.Core.Id] = &TreeNode{
+			Node: n,
+		}
+	}
+
+	var root *TreeNode
+	for _, n := range nodes {
+		cur := byID[n.Core.Id]
+		if n.Core.Id == rootID {
+			root = cur
+			continue
+		}
+		if n.Core.ParentId == nil {
+			continue
+		}
+		parent := byID[*n.Core.ParentId]
+		if parent == nil {
+			continue
+		}
+		parent.Children = append(parent.Children, cur)
+	}
+
+	if root == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return root, nil
+
+}
+
+func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
+	db := q.db.Model(&NodeCore{})
+	var nodeCores []NodeCore
+	var nodes []*Node
+
+	sql := `
+WITH RECURSIVE path AS (
+  SELECT * FROM node_cores WHERE id = ?
+  UNION ALL
+  SELECT p.* FROM node_cores p
+  JOIN path c ON p.id = c.parent_id
+)
+SELECT * FROM path;
+`
+	if err := db.Raw(sql, childID).Scan(&nodeCores).Error; err != nil {
+		return nil, err
+	}
+	if len(nodeCores) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	for _, nc := range nodeCores {
+		nodes = append(nodes, &Node{
+			Core: nc,
+		})
+	}
+
+	if q.includeTags {
+		tagsByNode, err := loadTagsByNode(q.db, nodes)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, n := range nodes {
+			n.Tags = tagsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeKV {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].KV = kvsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeContent {
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for i, n := range nodes {
+			nodes[i].Content = contentsByNode[n.Core.Id]
+		}
+	}
+
+	q.log.Debug("Debug: Building ancestor tree for childID = %v", childID)
+	q.log.Debug("Debug: Retrieved nodes:")
+	for _, n := range nodes {
+		q.log.Debug("  Node ID: %v, Parent ID: %v\n", n.Core.Id, SafePtrValue(n.Core.ParentId))
+	}
+
+	byID := make(map[string]*TreeNode, len(nodes))
+	for _, n := range nodes {
+		byID[n.Core.Id] = &TreeNode{
+			Node: n,
+		}
+	}
+
+	var root *TreeNode
+	for _, n := range nodes {
+		cur := byID[n.Core.Id]
+		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
+			root = cur
+			continue
+		}
+		parent := byID[*n.Core.ParentId]
+
+		if parent == nil {
+			continue
+		}
+
+		if parent.Children == nil {
+			parent.Children = make([]*TreeNode, 0)
+		}
+		parent.Children = append(parent.Children, cur)
+	}
+
+	if root == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return root, nil
+}
+
+func (q *NodeQuery) Ancestors() ([]*TreeNode, error) {
+	trees := make([]*TreeNode, 0)
+
+	nodes, err := q.fetchNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, n := range nodes {
+		tree, err := q.buildAncestorTree(n.Core.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		trees = append(trees, tree)
+	}
+	return trees, nil
+}
+
+func (q *NodeQuery) AncestorTree(childID string) (*TreeNode, error) {
+	return q.buildAncestorTree(childID)
 }

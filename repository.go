@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -101,4 +102,50 @@ func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 		out[r.NodeID] = append(out[r.NodeID], &Tag{Id: r.TagID, Name: r.Name})
 	}
 	return out, nil
+}
+
+func (r *Repository) Save(node *Node) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
+
+		if node.Core.Id == "" {
+			node.Core.Id = uuid.New().String()
+		}
+
+		if err := tx.Save(&node.Core).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&NodeTag{}).Where("node_id = ?", node.Core.Id).Delete(&NodeTag{}).Error; err != nil {
+			return err
+		}
+
+		for _, tag := range node.Tags {
+			if tag.Id == "" {
+				tag.Id = uuid.New().String()
+			}
+			if err := tx.FirstOrCreate(tag, Tag{Id: tag.Id}).Error; err != nil {
+				return err
+			}
+			nodeTag := &NodeTag{
+				NodeId: node.Core.Id,
+				TagId:  tag.Id,
+			}
+			if err := tx.Create(nodeTag).Error; err != nil {
+				return err
+			}
+		}
+
+		kvRepo := &KVRepository{DB: tx}
+		if err := kvRepo.DeleteAll(node.Core.Id); err != nil {
+			return err
+		}
+		for _, kv := range node.KV {
+			kv.NodeId = node.Core.Id
+			if err := kvRepo.Set(kv); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

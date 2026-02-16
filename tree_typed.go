@@ -7,6 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
+type TypedTreeNode[T any] struct {
+	Node     *T
+	Children []*TypedTreeNode[T]
+}
+
 func fetchDescendantNodes(q *NodeQuery, rootID string) ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
 
