@@ -8,6 +8,12 @@ func As[T any](repository *Repository) TypedRepository[T] {
 	return TypedRepository[T]{repository: repository}
 }
 
+func (tr TypedRepository[T]) Transaction(fn func(repo *TypedRepository[T]) error) error {
+	return tr.repository.Transaction(func(txRepo *Repository) error {
+		return fn(&TypedRepository[T]{repository: txRepo})
+	})
+}
+
 func (tr TypedRepository[T]) Save(model *T) error {
 	return Save(tr.repository, model)
 }

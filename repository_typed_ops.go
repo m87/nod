@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 func Save[T any](r *Repository, model *T) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		t := reflect.TypeOf((*T)(nil)).Elem()
