@@ -28,6 +28,7 @@ type NodeQuery struct {
 	namespaceIds   []string
 	name           *StringFilter
 	status         *StringFilter
+	kind					 *StringFilter
 	createdDate    *TimeFilter
 	updatedDate    *TimeFilter
 	includeTags    bool
@@ -202,6 +203,31 @@ func (q *NodeQuery) Page(page int, pageSize int) *NodeQuery {
 	return q
 }
 
+func (q *NodeQuery) Kind(filter *StringFilter) *NodeQuery {
+	q.kind = filter
+	return q
+}
+
+func (q *NodeQuery) KindEquals(value string) *NodeQuery {
+	q.kind = &StringFilter{Equals: &value}
+	return q
+}
+
+func (q *NodeQuery) KindContains(value string) *NodeQuery {
+	q.kind = &StringFilter{Contains: &value}
+	return q
+}
+
+func (q *NodeQuery) KindStartsWith(value string) *NodeQuery {
+	q.kind = &StringFilter{StartsWith: &value}
+	return q
+}
+
+func (q *NodeQuery) KindEndsWith(value string) *NodeQuery {
+	q.kind = &StringFilter{EndsWith: &value}
+	return q
+}
+
 func (q *NodeQuery) Name(filter *StringFilter) *NodeQuery {
 	q.name = filter
 	return q
@@ -362,6 +388,9 @@ func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 	}
 	if t.name != nil {
 		db = ApplyStringFilter(db, "name", t.name)
+	}
+  if t.kind != nil {
+		db = ApplyStringFilter(db, "kind", t.kind)
 	}
 	if t.status != nil {
 		db = ApplyStringFilter(db, "status", t.status)

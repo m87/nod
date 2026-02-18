@@ -43,6 +43,13 @@ func (tq *TypedQuery[T]) NameStartsWith(v string) *TypedQuery[T] {
 	return tq
 }
 func (tq *TypedQuery[T]) NameEndsWith(v string) *TypedQuery[T] { tq.query.NameEndsWith(v); return tq }
+func (tq *TypedQuery[T]) KindEquals(v string) *TypedQuery[T]   { tq.query.KindEquals(v); return tq }
+func (tq *TypedQuery[T]) KindContains(v string) *TypedQuery[T] { tq.query.KindContains(v); return tq }
+func (tq *TypedQuery[T]) KindStartsWith(v string) *TypedQuery[T] {
+	tq.query.KindStartsWith(v)
+	return tq
+}
+func (tq *TypedQuery[T]) KindEndsWith(v string) *TypedQuery[T] { tq.query.KindEndsWith(v); return tq }
 func (tq *TypedQuery[T]) StatusEquals(v string) *TypedQuery[T] { tq.query.StatusEquals(v); return tq }
 func (tq *TypedQuery[T]) StatusContains(v string) *TypedQuery[T] {
 	tq.query.StatusContains(v)
