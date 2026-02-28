@@ -13,7 +13,6 @@ type Node struct {
 	Tags    []*Tag
 	KV      map[string]*KV
 	Content map[string]*Content
-	Blobs   map[string]*Blob
 }
 
 type Repository struct {
@@ -143,6 +142,17 @@ func (r *Repository) Save(node *Node) error {
 		for _, kv := range node.KV {
 			kv.NodeId = node.Core.Id
 			if err := kvRepo.Set(kv); err != nil {
+				return err
+			}
+		}
+
+		contentRepo := &ContentRepository{DB: tx}
+		if err := contentRepo.DeleteAll(node.Core.Id); err != nil {
+			return err
+		}
+		for _, content := range node.Content {
+			content.NodeId = node.Core.Id
+			if err := contentRepo.Save(content); err != nil {
 				return err
 			}
 		}
