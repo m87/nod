@@ -28,12 +28,13 @@ type NodeQuery struct {
 	namespaceIds   []string
 	name           *StringFilter
 	status         *StringFilter
-	kind					 *StringFilter
+	kind           *StringFilter
 	createdDate    *TimeFilter
 	updatedDate    *TimeFilter
 	includeTags    bool
 	includeKV      bool
 	includeContent bool
+	includeBlobs   bool
 	excludeRoot    bool
 	onlyRoots      bool
 	limit          int
@@ -63,6 +64,7 @@ func (q *NodeQuery) Clone() *NodeQuery {
 		includeTags:    q.includeTags,
 		includeKV:      q.includeKV,
 		includeContent: q.includeContent,
+		includeBlobs:   q.includeBlobs,
 		excludeRoot:    q.excludeRoot,
 		onlyRoots:      q.onlyRoots,
 		limit:          q.limit,
@@ -184,6 +186,11 @@ func (q *NodeQuery) Tags() *NodeQuery {
 
 func (q *NodeQuery) KV() *NodeQuery {
 	q.includeKV = true
+	return q
+}
+
+func (q *NodeQuery) Blobs() *NodeQuery {
+	q.includeBlobs = true
 	return q
 }
 
@@ -389,7 +396,7 @@ func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 	if t.name != nil {
 		db = ApplyStringFilter(db, "name", t.name)
 	}
-  if t.kind != nil {
+	if t.kind != nil {
 		db = ApplyStringFilter(db, "kind", t.kind)
 	}
 	if t.status != nil {
@@ -480,6 +487,22 @@ func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 			n.Content = contentsByNode[n.Core.Id]
 		}
 		q.log.Debug("NodeQuery FindAll: loaded Content for nodes")
+	}
+
+	if q.includeBlobs {
+		q.log.Debug("NodeQuery FindAll: loading Blobs for nodes")
+		nodeIds := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			nodeIds = append(nodeIds, n.Core.Id)
+		}
+		blobsByNode, err := (&BlobRepository{DB: q.db}).GetAllForNodes(nodeIds)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range nodes {
+			n.Blobs = blobsByNode[n.Core.Id]
+		}
+		q.log.Debug("NodeQuery FindAll: loaded Blobs for nodes")
 	}
 	return nodes, nil
 }
@@ -671,6 +694,20 @@ SELECT * FROM tree;
 		}
 	}
 
+	if q.includeBlobs {
+		ids := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			ids = append(ids, n.Core.Id)
+		}
+		blobsByNode, err := (&BlobRepository{DB: q.db}).GetAllForNodes(ids)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range nodes {
+			n.Blobs = blobsByNode[n.Core.Id]
+		}
+	}
+
 	return nodes, nil
 }
 
@@ -771,6 +808,20 @@ SELECT * FROM path;
 		}
 		for _, n := range nodes {
 			n.Content = contentsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeBlobs {
+		ids := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			ids = append(ids, n.Core.Id)
+		}
+		blobsByNode, err := (&BlobRepository{DB: q.db}).GetAllForNodes(ids)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range nodes {
+			n.Blobs = blobsByNode[n.Core.Id]
 		}
 	}
 
