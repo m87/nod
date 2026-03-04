@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 func Save[T any](r *Repository, model *T) error {
 	return r.Db.Transaction(func(tx *gorm.DB) error {
 		t := reflect.TypeOf((*T)(nil)).Elem()
@@ -90,6 +89,9 @@ func ListAs[T any](q *NodeQuery) ([]*T, error) {
 
 	out := make([]*T, 0, len(nodes))
 	for _, n := range nodes {
+		if !mapper.isApplicable(n) {
+			continue
+		}
 		v, err := mapper.fromNode(n)
 		if err != nil {
 			return nil, err

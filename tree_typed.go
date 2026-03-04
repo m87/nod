@@ -84,6 +84,9 @@ func buildTreeFromNodes[T any](q *NodeQuery, nodes []*Node, rootID string) (*Typ
 	byID := make(map[string]*TypedTreeNode[T], len(nodes))
 
 	for _, n := range nodes {
+		if !mapper.isApplicable(n) {
+			continue
+		}
 		v, err := mapper.fromNode(n)
 		if err != nil {
 			return nil, err
@@ -130,6 +133,9 @@ func buildAncestorTreeFromNodes[T any](q *NodeQuery, nodes []*Node) (*TypedTreeN
 	byID := make(map[string]*TypedTreeNode[T], len(nodes))
 
 	for _, n := range nodes {
+		if !mapper.isApplicable(n) {
+			continue
+		}
 		v, err := mapper.fromNode(n)
 		if err != nil {
 			return nil, err

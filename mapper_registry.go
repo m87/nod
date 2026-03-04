@@ -8,10 +8,15 @@ import (
 type anyMapper interface {
 	toNode(any) (*Node, error)
 	fromNode(*Node) (any, error)
+	isApplicable(*Node) bool
 }
 
 type erasedMapper[T any] struct {
 	mapper NodeMapper[T]
+}
+
+func (e erasedMapper[T]) isApplicable(node *Node) bool {
+	return e.mapper.IsApplicable(node)
 }
 
 func (e erasedMapper[T]) toNode(v any) (*Node, error) {
