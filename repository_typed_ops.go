@@ -87,7 +87,7 @@ func ListAs[T any](q *NodeQuery) ([]*T, error) {
 		return nil, err
 	}
 
-	out := make([]*T, 0, len(nodes))
+	out := []*T{}
 	for _, n := range nodes {
 		if !mapper.isApplicable(n) {
 			continue
