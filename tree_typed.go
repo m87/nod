@@ -100,6 +100,9 @@ func buildTreeFromNodes[T any](q *NodeQuery, nodes []*Node, rootID string) (*Typ
 	var root *TypedTreeNode[T]
 
 	for _, n := range nodes {
+		if !mapper.isApplicable(n) {
+			continue
+		}
 		cur := byID[n.Core.Id]
 		if n.Core.Id == rootID {
 			root = cur
@@ -148,6 +151,9 @@ func buildAncestorTreeFromNodes[T any](q *NodeQuery, nodes []*Node) (*TypedTreeN
 	var root *TypedTreeNode[T]
 
 	for _, n := range nodes {
+		if !mapper.isApplicable(n) {
+			continue
+		}
 		cur := byID[n.Core.Id]
 		if n.Core.ParentId == nil || *n.Core.ParentId == "" {
 			root = cur
