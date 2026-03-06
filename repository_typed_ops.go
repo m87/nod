@@ -8,8 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func Save[T any](r *Repository, model *T) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
+func Save[T any](r *Repository, model *T) (string, error) {
+	var nodeId string
+	err := r.Db.Transaction(func(tx *gorm.DB) error {
 		t := reflect.TypeOf((*T)(nil)).Elem()
 		mapper, err := r.Mappers.forType(t)
 		if err != nil {
@@ -22,7 +23,10 @@ func Save[T any](r *Repository, model *T) error {
 		}
 
 		if node.Core.Id == "" {
-			node.Core.Id = uuid.New().String()
+			nodeId = uuid.New().String()
+			node.Core.Id = nodeId
+		} else {
+			nodeId = node.Core.Id
 		}
 
 		if err := tx.Save(&node.Core).Error; err != nil {
@@ -73,6 +77,10 @@ func Save[T any](r *Repository, model *T) error {
 
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	return nodeId, nil
 }
 
 func ListAs[T any](q *NodeQuery) ([]*T, error) {

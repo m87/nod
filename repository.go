@@ -104,12 +104,11 @@ func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 	return out, nil
 }
 
-func (r *Repository) Save(node *Node) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
-
-		if node.Core.Id == "" {
-			node.Core.Id = uuid.New().String()
-		}
+func (r *Repository) Save(node *Node) (string, error) {
+	if node.Core.Id == "" {
+		node.Core.Id = uuid.New().String()
+	}
+	err := r.Db.Transaction(func(tx *gorm.DB) error {
 
 		if err := tx.Save(&node.Core).Error; err != nil {
 			return err
@@ -159,4 +158,8 @@ func (r *Repository) Save(node *Node) error {
 
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	return node.Core.Id, nil
 }

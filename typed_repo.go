@@ -18,7 +18,7 @@ func (tr TypedRepository[T]) Transaction(fn func(repo *TypedRepository[T]) error
 	})
 }
 
-func (tr TypedRepository[T]) Save(model *T) error {
+func (tr TypedRepository[T]) Save(model *T) (string, error) {
 	return Save(tr.repository, model)
 }
 
