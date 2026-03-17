@@ -350,7 +350,7 @@ func escapeLike(s string) string {
 }
 
 func ApplyKVFilters(db *gorm.DB, filters []*KVFilter) *gorm.DB {
-	kvRepository := &KVRepository{DB: db}
+	kvRepository := &KVRepository{DB: db.Session(&gorm.Session{NewDB: true})}
 	kvs, err := kvRepository.Query(filters)
 	if err != nil {
 		return db
