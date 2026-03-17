@@ -40,6 +40,10 @@ func (tq *TypedQuery[T]) KV() *TypedQuery[T]                   { tq.query.KV(); 
 func (tq *TypedQuery[T]) Content() *TypedQuery[T]              { tq.query.Content(); return tq }
 func (tq *TypedQuery[T]) Limit(n int) *TypedQuery[T]           { tq.query.Limit(n); return tq }
 func (tq *TypedQuery[T]) Page(p, size int) *TypedQuery[T]      { tq.query.Page(p, size); return tq }
+func (tq *TypedQuery[T]) KVFilter(filter *KVFilter) *TypedQuery[T] {
+	tq.query.KVFilter(filter)
+	return tq
+}
 func (tq *TypedQuery[T]) NameEquals(v string) *TypedQuery[T]   { tq.query.NameEquals(v); return tq }
 func (tq *TypedQuery[T]) NameContains(v string) *TypedQuery[T] { tq.query.NameContains(v); return tq }
 func (tq *TypedQuery[T]) NameStartsWith(v string) *TypedQuery[T] {
