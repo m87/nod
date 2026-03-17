@@ -16,6 +16,23 @@ type KV struct {
 	ValueTime   *time.Time `gorm:"type:datetime"`
 }
 
+type KVFilter struct {
+	Key               *string
+	TextContains      *string
+	NumberEquals      *float64
+	IntEquals         *int
+	BoolEquals        *bool
+	TimeFrom          *time.Time
+	TimeTo            *time.Time
+	TextEquals        *string
+	TextStartsWith    *string
+	TextEndsWith      *string
+	NumberGreaterThan *float64
+	NumberLessThan    *float64
+	IntGreaterThan    *int
+	IntLessThan       *int
+}
+
 type KVRepository struct {
 	DB *gorm.DB
 }
@@ -73,6 +90,68 @@ func (r *KVRepository) DeleteAll(nodeId string) error {
 
 func (r *KVRepository) Delete(nodeId string, key string) error {
 	return r.DB.Delete(&KV{}, "node_id = ? AND key = ?", nodeId, key).Error
+}
+
+func (r *KVRepository) Query(filters []*KVFilter) ([]*KV, error) {
+	var kvs []KV
+	db := r.DB.Model(&KV{})
+
+	for _, filter := range filters {
+		if filter.Key != nil {
+			db = db.Where("key = ?", *filter.Key)
+		}
+		if filter.TextContains != nil {
+			db = db.Where("value_text LIKE ?", "%"+*filter.TextContains+"%")
+		}
+		if filter.TextEquals != nil {
+			db = db.Where("value_text = ?", *filter.TextEquals)
+		}
+		if filter.TextStartsWith != nil {
+			db = db.Where("value_text LIKE ?", *filter.TextStartsWith+"%")
+		}
+		if filter.TextEndsWith != nil {
+			db = db.Where("value_text LIKE ?", "%"+*filter.TextEndsWith)
+		}
+		if filter.NumberEquals != nil {
+			db = db.Where("value_number = ?", *filter.NumberEquals)
+		}
+		if filter.IntEquals != nil {
+			db = db.Where("value_int = ?", *filter.IntEquals)
+		}
+		if filter.BoolEquals != nil {
+			db = db.Where("value_bool = ?", *filter.BoolEquals)
+		}
+		if filter.TimeFrom != nil {
+			db = db.Where("value_time >= ?", *filter.TimeFrom)
+		}
+		if filter.TimeTo != nil {
+			db = db.Where("value_time <= ?", *filter.TimeTo)
+		}
+		if filter.NumberGreaterThan != nil {
+			db = db.Where("value_number > ?", *filter.NumberGreaterThan)
+		}
+		if filter.NumberLessThan != nil {
+			db = db.Where("value_number < ?", *filter.NumberLessThan)
+		}
+		if filter.IntGreaterThan != nil {
+			db = db.Where("value_int > ?", *filter.IntGreaterThan)
+		}
+		if filter.IntLessThan != nil {
+			db = db.Where("value_int < ?", *filter.IntLessThan)
+		}
+	}
+
+	if err := db.Find(&kvs).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]*KV, len(kvs))
+	for i, kv := range kvs {
+		kvCopy := kv
+		result[i] = &kvCopy
+	}
+
+	return result, nil
 }
 
 func ConvertKVToStringMap(kvs map[string]*KV) map[string]string {

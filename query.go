@@ -31,6 +31,7 @@ type NodeQuery struct {
 	kind           *StringFilter
 	createdDate    *TimeFilter
 	updatedDate    *TimeFilter
+	kvFilters      []*KVFilter
 	includeTags    bool
 	includeKV      bool
 	includeContent bool
@@ -68,10 +69,12 @@ func (q *NodeQuery) Clone() *NodeQuery {
 		limit:          q.limit,
 		page:           q.page,
 		pageSize:       q.pageSize,
+		kind:           q.kind,
 	}
 	clone.nodeIds = append([]string{}, q.nodeIds...)
 	clone.parentIds = append([]string{}, q.parentIds...)
 	clone.namespaceIds = append([]string{}, q.namespaceIds...)
+	clone.kvFilters = append([]*KVFilter{}, q.kvFilters...)
 
 	if q.name != nil {
 		nameCopy := *q.name
@@ -135,6 +138,11 @@ func NewTimeFilter(from, to *time.Time) *TimeFilter {
 		From: from,
 		To:   to,
 	}
+}
+
+func (q *NodeQuery) KVFilter(filter *KVFilter) *NodeQuery {
+	q.kvFilters = append(q.kvFilters, filter)
+	return q
 }
 
 func (q *NodeQuery) Roots() *NodeQuery {
@@ -341,6 +349,19 @@ func escapeLike(s string) string {
 	return r
 }
 
+func ApplyKVFilters(db *gorm.DB, filters []*KVFilter) *gorm.DB {
+	kvRepository := &KVRepository{DB: db}
+	kvs, err := kvRepository.Query(filters)
+	if err != nil {
+		return db
+	}
+	ids := make([]string, 0, len(kvs))
+	for _, kv := range kvs {
+		ids = append(ids, kv.NodeId)
+	}
+	return db.Where("id IN ?", ids)
+}
+
 func ApplyStringFilter(db *gorm.DB, field string, filter *StringFilter) *gorm.DB {
 	if filter.Equals != nil {
 		db = db.Where(field+" = ?", *filter.Equals)
@@ -406,6 +427,10 @@ func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 
 func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
 	q.log.Debug("TypedQuery current filters", "nodeIds", q.nodeIds, "parentIds", q.parentIds, "namespaceIds", q.namespaceIds, "name", q.name, "status", q.status, "createdDate", q.createdDate, "updatedDate", q.updatedDate, "onlyRoots", q.onlyRoots, "excludeRoot", q.excludeRoot)
+
+	if len(q.kvFilters) > 0 {
+		db = ApplyKVFilters(db, q.kvFilters)
+	}
 
 	db = ApplyCommonFilters(db, q)
 
@@ -487,7 +512,9 @@ func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 
 func (q *NodeQuery) Count() (int64, error) {
 	db := q.db.Model(&NodeCore{})
-
+	if len(q.kvFilters) > 0 {
+		db = ApplyKVFilters(db, q.kvFilters)
+	}
 	db = ApplyCommonFilters(db, q)
 
 	var count int64
