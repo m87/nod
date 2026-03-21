@@ -12,6 +12,7 @@ type KV struct {
 	ValueText   *string    `gorm:"type:text"`
 	ValueNumber *float64   `gorm:"type:real"`
 	ValueInt    *int       `gorm:"type:integer"`
+	ValueInt64  *int64     `gorm:"type:bigint"`
 	ValueBool   *bool      `gorm:"type:boolean"`
 	ValueTime   *time.Time `gorm:"type:datetime"`
 }
@@ -21,6 +22,7 @@ type KVFilter struct {
 	TextContains      *string
 	NumberEquals      *float64
 	IntEquals         *int
+	Int64Equals       *int64
 	BoolEquals        *bool
 	TimeFrom          *time.Time
 	TimeTo            *time.Time
@@ -180,6 +182,27 @@ func ConvertKVToIntMap(kvs map[string]*KV) map[string]int {
 	for key, kv := range kvs {
 		if kv.ValueInt != nil {
 			result[key] = *kv.ValueInt
+		}
+	}
+	return result
+}
+
+func ConvertInt64MapToKV(data map[string]int64) map[string]*KV {
+	result := make(map[string]*KV)
+	for key, value := range data {
+		result[key] = &KV{
+			Key:        key,
+			ValueInt64: &value,
+		}
+	}
+	return result
+}
+
+func ConvertKVToInt64Map(kvs map[string]*KV) map[string]int64 {
+	result := make(map[string]int64)
+	for key, kv := range kvs {
+		if kv.ValueInt64 != nil {
+			result[key] = *kv.ValueInt64
 		}
 	}
 	return result
