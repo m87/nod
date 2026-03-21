@@ -218,3 +218,87 @@ func ConvertIntMapToKV(data map[string]int) map[string]*KV {
 	}
 	return result
 }
+
+func SafeString(data map[string]*KV, key string) string {
+	if kv, exists := data[key]; exists && kv.ValueText != nil {
+		return *kv.ValueText
+	}
+	return ""
+}
+
+func SafeInt(data map[string]*KV, key string) int {
+	if kv, exists := data[key]; exists && kv.ValueInt != nil {
+		return *kv.ValueInt
+	}
+	return 0
+}
+
+func SafeInt64(data map[string]*KV, key string) int64 {
+	if kv, exists := data[key]; exists && kv.ValueInt64 != nil {
+		return *kv.ValueInt64
+	}
+	return 0
+}
+
+func SafeBool(data map[string]*KV, key string) bool {
+	if kv, exists := data[key]; exists && kv.ValueBool != nil {
+		return *kv.ValueBool
+	}
+	return false
+}
+
+func SafeTime(data map[string]*KV, key string) time.Time {
+	if kv, exists := data[key]; exists && kv.ValueTime != nil {
+		return *kv.ValueTime
+	}
+	return time.Time{}
+}
+
+func SafeFloat64(data map[string]*KV, key string) float64 {
+	if kv, exists := data[key]; exists && kv.ValueNumber != nil {
+		return *kv.ValueNumber
+	}
+	return 0
+}
+
+func SafeStringWithDefault(data map[string]*KV, key string, defaultValue string) string {
+	if kv, exists := data[key]; exists && kv.ValueText != nil {
+		return *kv.ValueText
+	}
+	return defaultValue
+}
+
+func SafeIntWithDefault(data map[string]*KV, key string, defaultValue int) int {
+	if kv, exists := data[key]; exists && kv.ValueInt != nil {
+		return *kv.ValueInt
+	}
+	return defaultValue
+}
+
+func SafeInt64WithDefault(data map[string]*KV, key string, defaultValue int64) int64 {
+	if kv, exists := data[key]; exists && kv.ValueInt64 != nil {
+		return *kv.ValueInt64
+	}
+	return defaultValue
+}
+
+func SafeBoolWithDefault(data map[string]*KV, key string, defaultValue bool) bool {
+	if kv, exists := data[key]; exists && kv.ValueBool != nil {
+		return *kv.ValueBool
+	}
+	return defaultValue
+}
+
+func SafeTimeWithDefault(data map[string]*KV, key string, defaultValue time.Time) time.Time {
+	if kv, exists := data[key]; exists && kv.ValueTime != nil {
+		return *kv.ValueTime
+	}
+	return defaultValue
+}
+
+func SafeFloat64WithDefault(data map[string]*KV, key string, defaultValue float64) float64 {
+	if kv, exists := data[key]; exists && kv.ValueNumber != nil {
+		return *kv.ValueNumber
+	}
+	return defaultValue
+}
