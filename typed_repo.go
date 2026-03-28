@@ -1,31 +1,38 @@
 package nod
 
+// TypedRepository provides type-safe access to the repository for a specific model type.
 type TypedRepository[T any] struct {
 	repository *Repository
 }
 
+// As creates a TypedRepository for a given model type.
 func As[T any](repository *Repository) TypedRepository[T] {
 	return TypedRepository[T]{repository: repository}
 }
 
+// Untyped returns the underlying untyped Repository.
 func (tr TypedRepository[T]) Untyped() *Repository {
 	return tr.repository
 }
 
+// Transaction executes a function within a transaction using the typed repository.
 func (tr TypedRepository[T]) Transaction(fn func(repo *TypedRepository[T]) error) error {
 	return tr.repository.Transaction(func(txRepo *Repository) error {
 		return fn(&TypedRepository[T]{repository: txRepo})
 	})
 }
 
+// Save persists a model of type T in the repository.
 func (tr TypedRepository[T]) Save(model *T) (string, error) {
 	return Save(tr.repository, model)
 }
 
+// Query creates a new TypedQuery for the model type T.
 func (tr TypedRepository[T]) Query() *TypedQuery[T] {
 	return &TypedQuery[T]{query: tr.repository.Query()}
 }
 
+// TypedQuery provides a type-safe query builder for models of type T.
 type TypedQuery[T any] struct {
 	query *NodeQuery
 }

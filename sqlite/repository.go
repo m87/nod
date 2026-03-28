@@ -6,25 +6,29 @@ import (
 	"github.com/m87/nod"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	 _ "modernc.org/sqlite"
+	_ "modernc.org/sqlite"
 )
 
-func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) *nod.Repository {
-	return &nod.Repository{
-		Db:   initDB(log, path),
-		Log:  log,
-		Mappers: mappers,
+func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+	db, err := initDB(log, path)
+	if err != nil {
+		return nil, err
 	}
+	return &nod.Repository{
+		Db:      db,
+		Log:     log,
+		Mappers: mappers,
+	}, nil
 }
 
-func initDB(log *slog.Logger, path string) *gorm.DB {
+func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
 	log.Debug(">> open database", slog.String("path", path))
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
-		DSN:                  path,
-		DriverName: 				 "sqlite",
+		DSN:        path,
+		DriverName: "sqlite",
 	}), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	log.Debug("<< database opened")
 	log.Debug(">> enable foreign keys")
@@ -34,10 +38,10 @@ func initDB(log *slog.Logger, path string) *gorm.DB {
 	log.Debug(">> migrate database")
 	err = db.AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{}, &nod.Content{})
 	if err != nil {
-		panic("failed to migrate database")
+		return nil, err
 	}
 
 	log.Debug("<< database migrated")
 
-	return db
+	return db, nil
 }

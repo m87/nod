@@ -18,6 +18,5 @@ func (m *Manager) Execute(fn func(repository *Repository) error) {
 	err := m.ExecuteE(fn)
 	if err != nil {
 		m.repository.Log.Error("Error executing function in transaction", "error", err)
-		panic(err)
 	}
 }

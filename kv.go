@@ -1,3 +1,4 @@
+// Package nod provides a tree-structured data management library with tagging, key-value attributes, and content support.
 package nod
 
 import (
@@ -6,6 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// KV represents a key-value attribute attached to a node.
 type KV struct {
 	NodeId      string     `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
 	Key         string     `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
@@ -17,6 +19,7 @@ type KV struct {
 	ValueTime   *time.Time `gorm:"type:datetime"`
 }
 
+// KVFilter defines filters for querying key-value pairs.
 type KVFilter struct {
 	Key               *string
 	TextContains      *string
@@ -35,6 +38,7 @@ type KVFilter struct {
 	IntLessThan       *int
 }
 
+// KVRepository provides methods for managing key-value pairs in the database.
 type KVRepository struct {
 	DB *gorm.DB
 }

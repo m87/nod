@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Node represents a tree node with core data, tags, key-value attributes, and content.
 type Node struct {
 	Core    NodeCore
 	Tags    []*Tag
@@ -15,12 +16,14 @@ type Node struct {
 	Content map[string]*Content
 }
 
+// Repository provides access to nodes and related data in the database.
 type Repository struct {
 	Db      *gorm.DB
 	Log     *slog.Logger
 	Mappers *MapperRegistry
 }
 
+// NewRepository creates a new Repository instance.
 func NewRepository(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *Repository {
 	return &Repository{
 		Db:      db,
@@ -29,6 +32,7 @@ func NewRepository(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *Repo
 	}
 }
 
+// Transaction executes a function within a database transaction.
 func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 	r.Log.Debug(">> new transaction")
 	return r.Db.Transaction(func(tx *gorm.DB) error {
