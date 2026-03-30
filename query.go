@@ -811,7 +811,7 @@ func (q *NodeQuery) buildAncestorTree(childID string) (*TreeNode, error) {
 		return nil, err
 	}
 
-	q.log.Debug("Debug: Building ancestor tree for childID = ", childID)
+	q.log.Debug("Debug: Building ancestor tree", "childID", childID)
 	q.log.Debug("Debug: Retrieved nodes:")
 	for _, n := range nodes {
 		q.log.Debug("  Node ID: %v, Parent ID: %v\n", n.Core.Id, SafePtrValue(n.Core.ParentId))
