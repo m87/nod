@@ -14,8 +14,10 @@ type Tag struct {
 }
 
 type NodeTag struct {
-	NodeId string `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:1"`
-	TagId  string `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:2"`
+	NodeId string    `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:1"`
+	Node   *NodeCore `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:NodeId;references:Id"`
+	TagId  string    `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:2"`
+	Tag    *Tag      `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:TagId;references:Id"`
 }
 
 type TagRepository struct {
@@ -86,7 +88,7 @@ func (r *TagRepository) Delete(tagId string) error {
 		if err := tx.Where("tag_id = ?", tagId).Delete(&NodeTag{}).Error; err != nil {
 			return err
 		}
-		return r.DB.Delete(&Tag{}, "id = ?", tagId).Error
+		return tx.Delete(&Tag{}, "id = ?", tagId).Error
 	})
 }
 

@@ -53,6 +53,19 @@ Run tests:
 go test ./...
 ```
 
+Run SQLite adapter tests:
+
+```
+go test ./sqlite -v
+```
+
+Run Postgres adapter tests (requires DSN):
+
+```
+export NOD_TEST_POSTGRES_DSN='host=localhost port=5432 user=nod password=nod dbname=nod_test sslmode=disable'
+go test ./postgres -v
+```
+
 ## License
 
 MIT

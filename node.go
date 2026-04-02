@@ -8,6 +8,7 @@ type NodeCore struct {
 	Id          string    `gorm:"type:char(36);primaryKey"`
 	NamespaceId *string   `gorm:"type:char(36);index:idx_namespace_id,priority:1;index"`
 	ParentId    *string   `gorm:"type:char(36);index:idx_parent_id,priority:2;index"`
+	Parent      *NodeCore `gorm:"foreignKey:ParentId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Kind        string    `gorm:"type:text;not null;index;default:''"`
 	Status      string    `gorm:"type:text;not null;index;default:''"`
 	Name        string    `gorm:"type:text;not null;index"`
