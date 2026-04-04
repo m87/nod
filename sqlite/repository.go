@@ -13,16 +13,14 @@ import (
 
 const sharedMemoryDSN = "file::memory:?cache=shared"
 
+// NewRepository creates a new nod Repository backed by SQLite at the given path.
+// Use ":memory:" for an in-memory database.
 func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
 	db, err := initDB(log, path)
 	if err != nil {
 		return nil, err
 	}
-	return &nod.Repository{
-		Db:      db,
-		Log:     log,
-		Mappers: mappers,
-	}, nil
+	return nod.NewRepository(db, log, mappers), nil
 }
 
 func initDB(log *slog.Logger, path string) (*gorm.DB, error) {

@@ -31,16 +31,19 @@ func (e erasedMapper[T]) fromNode(node *Node) (any, error) {
 	return e.mapper.FromNode(node)
 }
 
+// MapperRegistry stores type-to-mapper associations for converting between domain models and nodes.
 type MapperRegistry struct {
 	byType map[reflect.Type]anyMapper
 }
 
+// NewMapperRegistry creates an empty MapperRegistry.
 func NewMapperRegistry() *MapperRegistry {
 	return &MapperRegistry{
 		byType: make(map[reflect.Type]anyMapper),
 	}
 }
 
+// RegisterMapper registers a NodeMapper for type T in the registry.
 func RegisterMapper[T any](registry *MapperRegistry, mapper NodeMapper[T]) *MapperRegistry {
 	t := reflect.TypeOf((*T)(nil)).Elem()
 	registry.byType[t] = &erasedMapper[T]{mapper: mapper}

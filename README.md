@@ -1,6 +1,6 @@
 # nod
 
-Golang library for managing tree-structured data with support for tags, key-value attributes (KV), content, and transactions, built on GORM/SQLite.
+Golang library for managing tree-structured data with support for tags, key-value attributes (KV), content, and transactions, built on GORM. Supports SQLite and PostgreSQL.
 
 ## Installation
 
@@ -11,34 +11,73 @@ go get github.com/m87/nod
 ## Quick Start
 
 ```go
+package main
+
 import (
-	"github.com/m87/nod"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log/slog"
+
+	"github.com/m87/nod"
+	sqlite_nod "github.com/m87/nod/sqlite"
 )
 
 func main() {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	log := slog.Default()
 	mappers := nod.NewMapperRegistry()
-	repo, _ := nod.NewRepository(":memory:", log, mappers)
-	// ...
+	repo, err := sqlite_nod.NewRepository(":memory:", slog.Default(), mappers)
+	if err != nil {
+		panic(err)
+	}
+	defer repo.Close()
+
+	node := &nod.Node{
+		Core: nod.NodeCore{Name: "root", Kind: "folder"},
+	}
+	id, _ := repo.Save(node)
+
+	found, _ := repo.Query().NodeId(id).First()
+	slog.Info("Found node", "name", found.Core.Name)
 }
 ```
 
-## Usage Example
+For PostgreSQL, use the `postgres` adapter:
 
 ```go
-// Create a new node
-node := &nod.Node{
-	Core: nod.NodeCore{Name: "root", Kind: "folder"},
-}
-repo.Save(node)
+import postgres_nod "github.com/m87/nod/postgres"
 
-// Query
-q := repo.Query().NameEquals("root")
-found, _ := q.First()
+repo, err := postgres_nod.NewRepository(dsn, slog.Default(), mappers)
+```
+
+## Typed Repository
+
+Register a mapper to work with your own domain models:
+
+```go
+type MyNode struct {
+	Name string
+}
+
+type MyMapper struct{}
+
+func (m MyMapper) ToNode(model *MyNode) (*nod.Node, error) {
+	return &nod.Node{
+		Core: nod.NodeCore{Name: model.Name, Kind: "my-node"},
+	}, nil
+}
+func (m MyMapper) FromNode(node *nod.Node) (*MyNode, error) {
+	return &MyNode{Name: node.Core.Name}, nil
+}
+func (m MyMapper) IsApplicable(node *nod.Node) bool {
+	return node.Core.Kind == "my-node"
+}
+
+func main() {
+	registry := nod.NewMapperRegistry()
+	nod.RegisterMapper(registry, MyMapper{})
+	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), registry)
+
+	typed := nod.As[MyNode](repo)
+	typed.Save(&MyNode{Name: "example"})
+	found, _ := typed.Query().NameEquals("example").First()
+}
 ```
 
 ## Documentation

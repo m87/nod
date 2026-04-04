@@ -8,17 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// NewRepository creates a new nod Repository backed by PostgreSQL at the given DSN.
 func NewRepository(dsn string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
 	db, err := initDB(log, dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	return &nod.Repository{
-		Db:      db,
-		Log:     log,
-		Mappers: mappers,
-	}, nil
+	return nod.NewRepository(db, log, mappers), nil
 }
 
 func initDB(log *slog.Logger, dsn string) (*gorm.DB, error) {

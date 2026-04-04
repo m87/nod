@@ -2,6 +2,7 @@ package nod
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -17,22 +18,31 @@ type Node struct {
 
 // Repository provides access to nodes and related data in the database.
 type Repository struct {
-	Db      *gorm.DB
-	Log     *slog.Logger
-	Mappers *MapperRegistry
+	db      *gorm.DB
+	log     *slog.Logger
+	mappers *MapperRegistry
 }
 
 // NewRepository creates a new Repository instance.
 func NewRepository(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *Repository {
 	return &Repository{
-		Db:      db,
-		Log:     log,
-		Mappers: mappers,
+		db:      db,
+		log:     log,
+		mappers: mappers,
 	}
 }
 
+// DB returns the underlying GORM database connection.
+func (r *Repository) DB() *gorm.DB { return r.db }
+
+// Log returns the repository's logger.
+func (r *Repository) Log() *slog.Logger { return r.log }
+
+// Mappers returns the mapper registry used by this repository.
+func (r *Repository) Mappers() *MapperRegistry { return r.mappers }
+
 func (r *Repository) Close() error {
-	sqlDB, err := r.Db.DB()
+	sqlDB, err := r.db.DB()
 	if err != nil {
 		return err
 	}
@@ -42,27 +52,31 @@ func (r *Repository) Close() error {
 
 // Transaction executes a function within a database transaction.
 func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
-	r.Log.Debug(">> new transaction")
-	return r.Db.Transaction(func(tx *gorm.DB) error {
-		r.Log.Debug(">> new repository in transaction")
+	r.log.Debug(">> new transaction")
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		r.log.Debug(">> new repository in transaction")
 		txRepo := &Repository{
-			Db:      tx,
-			Log:     r.Log,
-			Mappers: r.Mappers,
+			db:      tx,
+			log:     r.log,
+			mappers: r.mappers,
 		}
-		r.Log.Debug(">> execute function in transaction")
+		r.log.Debug(">> execute function in transaction")
 		err := fc(txRepo)
 		if err != nil {
-			r.Log.Debug("<< rollback transaction due to error:", slog.String("error", err.Error()))
+			r.log.Debug("<< rollback transaction due to error:", slog.String("error", err.Error()))
 			return err
 		}
-		r.Log.Debug("<< end repository in transaction")
+		r.log.Debug("<< end repository in transaction")
 		return err
 	})
 }
 
 func (r *Repository) Delete(nodeId string) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
+	if nodeId == "" {
+		return fmt.Errorf("nod: nodeId must not be empty")
+	}
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		count := int64(0)
 		db := tx.Model(&NodeCore{})
 		if err := db.Where("parent_id = ?", nodeId).Count(&count).Error; err != nil {
@@ -86,7 +100,7 @@ func (r *Repository) Delete(nodeId string) error {
 }
 
 func (r *Repository) Query() *NodeQuery {
-	return NewNodeQuery(r.Db, r.Log, r.Mappers)
+	return NewNodeQuery(r.db, r.log, r.mappers)
 }
 
 func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
@@ -118,7 +132,7 @@ func loadTagsByNode(db *gorm.DB, nodes []*Node) (map[string][]*Tag, error) {
 
 func (r *Repository) Save(node *Node) (string, error) {
 	nodeID := ensureNodeID(node)
-	err := r.Db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return saveNodeGraph(tx, node)
 	})
 	if err != nil {

@@ -6,13 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// Tag represents a label that can be attached to one or more nodes.
 type Tag struct {
 	Id          string    `gorm:"type:char(36);primaryKey"`
 	NamespaceId *string   `gorm:"type:char(36);index:idx_tags_namespace_id,priority:1;index"`
 	Name        string    `gorm:"type:text;not null;index"`
-	CreatedAt   time.Time `gorm:"type:datetime;not null;autoCreateTime"`
+	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
 }
 
+// NodeTag represents the many-to-many relationship between nodes and tags.
 type NodeTag struct {
 	NodeId string    `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:1"`
 	Node   *NodeCore `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:NodeId;references:Id"`
@@ -20,6 +22,7 @@ type NodeTag struct {
 	Tag    *Tag      `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:TagId;references:Id"`
 }
 
+// TagRepository provides methods for managing tags in the database.
 type TagRepository struct {
 	DB *gorm.DB
 }
@@ -92,6 +95,7 @@ func (r *TagRepository) Delete(tagId string) error {
 	})
 }
 
+// ConvertTagsToStringSlice extracts tag names from a slice of Tag pointers.
 func ConvertTagsToStringSlice(tags []*Tag) []string {
 	result := make([]string, len(tags))
 	for i, tag := range tags {
@@ -100,6 +104,7 @@ func ConvertTagsToStringSlice(tags []*Tag) []string {
 	return result
 }
 
+// ConvertStringSliceToTags creates Tag pointers from a slice of tag names.
 func ConvertStringSliceToTags(names []string) []*Tag {
 	result := make([]*Tag, len(names))
 	for i, name := range names {

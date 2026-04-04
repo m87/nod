@@ -91,10 +91,10 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 			repo := factory(t)
 			defer closeRepo(t, repo)
 
-			err := repo.Db.Create(&nod.NodeCore{Id: "dup-node", Name: "n1", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+			err := repo.DB().Create(&nod.NodeCore{Id: "dup-node", Name: "n1", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 			require.NoError(t, err)
 
-			err = repo.Db.Create(&nod.NodeCore{Id: "dup-node", Name: "n2", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+			err = repo.DB().Create(&nod.NodeCore{Id: "dup-node", Name: "n2", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 			require.Error(t, err)
 		})
 
@@ -102,13 +102,13 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 			repo := factory(t)
 			defer closeRepo(t, repo)
 
-			err := repo.Db.Create(&nod.NodeCore{Id: "n-kv", Name: "node-kv", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+			err := repo.DB().Create(&nod.NodeCore{Id: "n-kv", Name: "node-kv", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 			require.NoError(t, err)
 
-			err = repo.Db.Create(&nod.KV{NodeId: "n-kv", Key: "k1", ValueText: ptr("v1")}).Error
+			err = repo.DB().Create(&nod.KV{NodeId: "n-kv", Key: "k1", ValueText: ptr("v1")}).Error
 			require.NoError(t, err)
 
-			err = repo.Db.Create(&nod.KV{NodeId: "n-kv", Key: "k1", ValueText: ptr("v2")}).Error
+			err = repo.DB().Create(&nod.KV{NodeId: "n-kv", Key: "k1", ValueText: ptr("v2")}).Error
 			require.Error(t, err)
 		})
 
@@ -116,13 +116,13 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 			repo := factory(t)
 			defer closeRepo(t, repo)
 
-			err := repo.Db.Create(&nod.NodeCore{Id: "n-content", Name: "node-content", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+			err := repo.DB().Create(&nod.NodeCore{Id: "n-content", Name: "node-content", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 			require.NoError(t, err)
 
-			err = repo.Db.Create(&nod.Content{NodeId: "n-content", Key: "k1", Value: ptr("v1")}).Error
+			err = repo.DB().Create(&nod.Content{NodeId: "n-content", Key: "k1", Value: ptr("v1")}).Error
 			require.NoError(t, err)
 
-			err = repo.Db.Create(&nod.Content{NodeId: "n-content", Key: "k1", Value: ptr("v2")}).Error
+			err = repo.DB().Create(&nod.Content{NodeId: "n-content", Key: "k1", Value: ptr("v2")}).Error
 			require.Error(t, err)
 		})
 
@@ -130,7 +130,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 			repo := factory(t)
 			defer closeRepo(t, repo)
 
-			err := repo.Db.Table("node_cores").Create(map[string]any{
+			err := repo.DB().Table("node_cores").Create(map[string]any{
 				"id":         "null-name-node",
 				"name":       nil,
 				"kind":       "kind",
@@ -140,7 +140,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 			}).Error
 			require.Error(t, err)
 
-			err = repo.Db.Table("tags").Create(map[string]any{
+			err = repo.DB().Table("tags").Create(map[string]any{
 				"id":         "null-name-tag",
 				"name":       nil,
 				"created_at": time.Now(),
@@ -153,7 +153,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.NodeCore{Id: "child", ParentId: ptr("missing-parent"), Name: "child", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+				err := repo.DB().Create(&nod.NodeCore{Id: "child", ParentId: ptr("missing-parent"), Name: "child", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 				require.Error(t, err)
 			})
 
@@ -161,7 +161,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.KV{NodeId: "missing-node", Key: "k", ValueText: ptr("v")}).Error
+				err := repo.DB().Create(&nod.KV{NodeId: "missing-node", Key: "k", ValueText: ptr("v")}).Error
 				require.Error(t, err)
 			})
 
@@ -169,7 +169,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.Content{NodeId: "missing-node", Key: "k", Value: ptr("v")}).Error
+				err := repo.DB().Create(&nod.Content{NodeId: "missing-node", Key: "k", Value: ptr("v")}).Error
 				require.Error(t, err)
 			})
 
@@ -177,7 +177,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.NodeTag{NodeId: "missing-node", TagId: "missing-tag"}).Error
+				err := repo.DB().Create(&nod.NodeTag{NodeId: "missing-node", TagId: "missing-tag"}).Error
 				require.Error(t, err)
 			})
 
@@ -185,17 +185,17 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.NodeCore{Id: "parent", Name: "parent", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+				err := repo.DB().Create(&nod.NodeCore{Id: "parent", Name: "parent", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.NodeCore{Id: "child", ParentId: ptr("parent"), Name: "child", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+				err = repo.DB().Create(&nod.NodeCore{Id: "child", ParentId: ptr("parent"), Name: "child", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Delete(&nod.NodeCore{}, "id = ?", "parent").Error
+				err = repo.DB().Delete(&nod.NodeCore{}, "id = ?", "parent").Error
 				require.NoError(t, err)
 
 				var child nod.NodeCore
-				err = repo.Db.First(&child, "id = ?", "child").Error
+				err = repo.DB().First(&child, "id = ?", "child").Error
 				require.NoError(t, err)
 				require.Nil(t, child.ParentId)
 			})
@@ -204,36 +204,36 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+				err := repo.DB().Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
+				err = repo.DB().Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
+				err = repo.DB().Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.KV{NodeId: "node", Key: "k", ValueText: ptr("v")}).Error
+				err = repo.DB().Create(&nod.KV{NodeId: "node", Key: "k", ValueText: ptr("v")}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.Content{NodeId: "node", Key: "c", Value: ptr("v")}).Error
+				err = repo.DB().Create(&nod.Content{NodeId: "node", Key: "c", Value: ptr("v")}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Delete(&nod.NodeCore{}, "id = ?", "node").Error
+				err = repo.DB().Delete(&nod.NodeCore{}, "id = ?", "node").Error
 				require.NoError(t, err)
 
 				var nodeTagCount int64
-				err = repo.Db.Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
+				err = repo.DB().Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
 				require.NoError(t, err)
 				require.Equal(t, int64(0), nodeTagCount)
 
 				var kvCount int64
-				err = repo.Db.Model(&nod.KV{}).Where("node_id = ?", "node").Count(&kvCount).Error
+				err = repo.DB().Model(&nod.KV{}).Where("node_id = ?", "node").Count(&kvCount).Error
 				require.NoError(t, err)
 				require.Equal(t, int64(0), kvCount)
 
 				var contentCount int64
-				err = repo.Db.Model(&nod.Content{}).Where("node_id = ?", "node").Count(&contentCount).Error
+				err = repo.DB().Model(&nod.Content{}).Where("node_id = ?", "node").Count(&contentCount).Error
 				require.NoError(t, err)
 				require.Equal(t, int64(0), contentCount)
 			})
@@ -242,24 +242,24 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 				repo := factory(t)
 				defer closeRepo(t, repo)
 
-				err := repo.Db.Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+				err := repo.DB().Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
+				err = repo.DB().Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
+				err = repo.DB().Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
 				require.NoError(t, err)
 
-				err = repo.Db.Delete(&nod.Tag{}, "id = ?", "tag").Error
+				err = repo.DB().Delete(&nod.Tag{}, "id = ?", "tag").Error
 				require.NoError(t, err)
 
 				var node nod.NodeCore
-				err = repo.Db.First(&node, "id = ?", "node").Error
+				err = repo.DB().First(&node, "id = ?", "node").Error
 				require.NoError(t, err)
 
 				var nodeTagCount int64
-				err = repo.Db.Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
+				err = repo.DB().Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
 				require.NoError(t, err)
 				require.Equal(t, int64(0), nodeTagCount)
 			})
@@ -270,14 +270,14 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 		repo := factory(t)
 		defer closeRepo(t, repo)
 
-		migrator := repo.Db.Migrator()
+		migrator := repo.DB().Migrator()
 		require.True(t, migrator.HasTable(&nod.NodeCore{}))
 		require.True(t, migrator.HasTable(&nod.Tag{}))
 		require.True(t, migrator.HasTable(&nod.NodeTag{}))
 		require.True(t, migrator.HasTable(&nod.KV{}))
 		require.True(t, migrator.HasTable(&nod.Content{}))
 
-		err := repo.Db.AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{}, &nod.Content{})
+		err := repo.DB().AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{}, &nod.Content{})
 		require.NoError(t, err)
 	})
 
@@ -285,31 +285,31 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 		repo := factory(t)
 		defer closeRepo(t, repo)
 
-		err := repo.Db.Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
+		err := repo.DB().Create(&nod.NodeCore{Id: "node", Name: "node", Kind: "kind", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}).Error
 		require.NoError(t, err)
 
-		err = repo.Db.Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
+		err = repo.DB().Create(&nod.Tag{Id: "tag", Name: "tag", CreatedAt: time.Now()}).Error
 		require.NoError(t, err)
 
-		err = repo.Db.Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
+		err = repo.DB().Create(&nod.NodeTag{NodeId: "node", TagId: "tag"}).Error
 		require.NoError(t, err)
 
-		tagRepo := &nod.TagRepository{DB: repo.Db}
+		tagRepo := &nod.TagRepository{DB: repo.DB()}
 		err = tagRepo.Delete("tag")
 		require.NoError(t, err)
 
 		var nodeCount int64
-		err = repo.Db.Model(&nod.NodeCore{}).Where("id = ?", "node").Count(&nodeCount).Error
+		err = repo.DB().Model(&nod.NodeCore{}).Where("id = ?", "node").Count(&nodeCount).Error
 		require.NoError(t, err)
 		require.Equal(t, int64(1), nodeCount)
 
 		var nodeTagCount int64
-		err = repo.Db.Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
+		err = repo.DB().Model(&nod.NodeTag{}).Where("node_id = ?", "node").Count(&nodeTagCount).Error
 		require.NoError(t, err)
 		require.Equal(t, int64(0), nodeTagCount)
 
 		var tagCount int64
-		err = repo.Db.Model(&nod.Tag{}).Where("id = ?", "tag").Count(&tagCount).Error
+		err = repo.DB().Model(&nod.Tag{}).Where("id = ?", "tag").Count(&tagCount).Error
 		require.NoError(t, err)
 		require.Equal(t, int64(0), tagCount)
 	})
@@ -318,7 +318,7 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 		repo := factory(t)
 		defer closeRepo(t, repo)
 
-		nod.RegisterMapper(repo.Mappers, contractModelMapper{})
+		nod.RegisterMapper(repo.Mappers(), contractModelMapper{})
 
 		typed := nod.As[contractModel](repo)
 		model := &contractModel{

@@ -7,11 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// Save persists a model of type T by converting it to a Node using the registered mapper.
 func Save[T any](r *Repository, model *T) (string, error) {
 	var nodeId string
-	err := r.Db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		t := reflect.TypeOf((*T)(nil)).Elem()
-		mapper, err := r.Mappers.forType(t)
+		mapper, err := r.mappers.forType(t)
 		if err != nil {
 			return err
 		}
@@ -30,6 +31,7 @@ func Save[T any](r *Repository, model *T) (string, error) {
 	return nodeId, nil
 }
 
+// ListAs fetches nodes matching the query and converts them to type T using the registered mapper.
 func ListAs[T any](q *NodeQuery) ([]*T, error) {
 	nodes, err := q.fetchNodes()
 	if err != nil {
@@ -60,6 +62,7 @@ func ListAs[T any](q *NodeQuery) ([]*T, error) {
 	return out, nil
 }
 
+// FirstAs returns the first node matching the query converted to type T, or ErrRecordNotFound.
 func FirstAs[T any](q *NodeQuery) (*T, error) {
 	items, err := ListAs[T](q.Limit(1))
 	if err != nil {

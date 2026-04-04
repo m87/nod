@@ -24,7 +24,7 @@ func TestInit_EnablesForeignKeys(t *testing.T) {
 	defer func() { require.NoError(t, repo.Close()) }()
 
 	var enabled int
-	err = repo.Db.Raw("PRAGMA foreign_keys;").Scan(&enabled).Error
+	err = repo.DB().Raw("PRAGMA foreign_keys;").Scan(&enabled).Error
 	require.NoError(t, err)
 	require.Equal(t, 1, enabled)
 }
@@ -34,7 +34,7 @@ func TestInit_ConfiguresSingleConnectionForInMemory(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, repo.Close()) }()
 
-	sqlDB, err := repo.Db.DB()
+	sqlDB, err := repo.DB().DB()
 	require.NoError(t, err)
 
 	stats := sqlDB.Stats()

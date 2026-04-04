@@ -8,11 +8,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// TimeFilter specifies a time range for filtering queries.
 type TimeFilter struct {
 	From *time.Time
 	To   *time.Time
 }
 
+// StringFilter specifies string matching criteria for filtering queries.
 type StringFilter struct {
 	Equals     *string
 	Contains   *string
@@ -20,6 +22,7 @@ type StringFilter struct {
 	EndsWith   *string
 }
 
+// NodeQuery provides a fluent API for building node queries with filters, pagination, and relation loading.
 type NodeQuery struct {
 	log            *slog.Logger
 	db             *gorm.DB
@@ -43,11 +46,13 @@ type NodeQuery struct {
 	mappers        *MapperRegistry
 }
 
+// TreeNode represents a node in a tree structure with its children.
 type TreeNode struct {
 	Node     *Node
 	Children []*TreeNode
 }
 
+// NewNodeQuery creates a new NodeQuery with the given database connection, logger, and mapper registry.
 func NewNodeQuery(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *NodeQuery {
 	return &NodeQuery{
 		db:      db,
@@ -56,6 +61,7 @@ func NewNodeQuery(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *NodeQ
 	}
 }
 
+// Clone returns a deep copy of the NodeQuery.
 func (q *NodeQuery) Clone() *NodeQuery {
 	clone := &NodeQuery{
 		db:             q.db,
@@ -96,18 +102,22 @@ func (q *NodeQuery) Clone() *NodeQuery {
 	return clone
 }
 
+// StringEquals creates a StringFilter matching an exact value.
 func StringEquals(value string) *StringFilter {
 	return &StringFilter{Equals: &value}
 }
 
+// StringContains creates a StringFilter matching a substring.
 func StringContains(value string) *StringFilter {
 	return &StringFilter{Contains: &value}
 }
 
+// StringStartsWith creates a StringFilter matching a prefix.
 func StringStartsWith(value string) *StringFilter {
 	return &StringFilter{StartsWith: &value}
 }
 
+// StringEndsWith creates a StringFilter matching a suffix.
 func StringEndsWith(value string) *StringFilter {
 	return &StringFilter{EndsWith: &value}
 }
@@ -349,6 +359,7 @@ func escapeLike(s string) string {
 	return r
 }
 
+// ApplyKVFilters filters nodes by matching key-value attributes.
 func ApplyKVFilters(db *gorm.DB, filters []*KVFilter) *gorm.DB {
 	kvRepository := &KVRepository{DB: db.Session(&gorm.Session{NewDB: true})}
 	kvs, err := kvRepository.Query(filters)
@@ -362,6 +373,7 @@ func ApplyKVFilters(db *gorm.DB, filters []*KVFilter) *gorm.DB {
 	return db.Where("id IN ?", ids)
 }
 
+// ApplyStringFilter applies a StringFilter to the given GORM query on the specified field.
 func ApplyStringFilter(db *gorm.DB, field string, filter *StringFilter) *gorm.DB {
 	if filter.Equals != nil {
 		db = db.Where(field+" = ?", *filter.Equals)
@@ -381,6 +393,7 @@ func ApplyStringFilter(db *gorm.DB, field string, filter *StringFilter) *gorm.DB
 	return db
 }
 
+// ApplyTimeFilter applies a TimeFilter to the given GORM query on the specified field.
 func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 	if filter.From != nil {
 		db = db.Where(field+" >= ?", *filter.From)
@@ -391,12 +404,13 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 	return db
 }
 
+// ApplyCommonFilters applies standard node filters (IDs, names, dates, etc.) to a GORM query.
 func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
 	if len(t.nodeIds) > 0 {
 		db = db.Where("id IN ?", t.nodeIds)
 	}
 	if t.onlyRoots {
-		db = db.Where("parent_id IS NULL or parent_id = \"\"")
+		db = db.Where("parent_id IS NULL OR parent_id = ?", "")
 	}
 	if t.excludeRoot {
 		db = db.Where("parent_id IS NOT NULL")
@@ -445,6 +459,52 @@ func (q *NodeQuery) ApplyConditions(db *gorm.DB) *gorm.DB {
 	return db
 }
 
+// nodeIDs extracts the IDs from a slice of nodes.
+func nodeIDs(nodes []*Node) []string {
+	ids := make([]string, 0, len(nodes))
+	for _, n := range nodes {
+		ids = append(ids, n.Core.Id)
+	}
+	return ids
+}
+
+// loadRelations loads tags, KV, and content for the given nodes based on query options.
+func (q *NodeQuery) loadRelations(nodes []*Node) error {
+	if q.includeTags {
+		tagsByNode, err := loadTagsByNode(q.db, nodes)
+		if err != nil {
+			return err
+		}
+		for _, n := range nodes {
+			n.Tags = tagsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeKV {
+		ids := nodeIDs(nodes)
+		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(ids)
+		if err != nil {
+			return err
+		}
+		for _, n := range nodes {
+			n.KV = kvsByNode[n.Core.Id]
+		}
+	}
+
+	if q.includeContent {
+		ids := nodeIDs(nodes)
+		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(ids)
+		if err != nil {
+			return err
+		}
+		for _, n := range nodes {
+			n.Content = contentsByNode[n.Core.Id]
+		}
+	}
+
+	return nil
+}
+
 func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 	db := q.db.Model(&NodeCore{})
 	q.log.Debug("NodeQuery FindAll: starting query")
@@ -463,48 +523,8 @@ func (q *NodeQuery) fetchNodes() ([]*Node, error) {
 	}
 	q.log.Debug("NodeQuery FindAll: constructed nodes", slog.Int("count", len(nodes)))
 
-	if q.includeTags {
-		q.log.Debug("NodeQuery FindAll: loading tags for nodes")
-		tagsByNode, err := loadTagsByNode(q.db, nodes)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Tags = tagsByNode[n.Core.Id]
-		}
-		q.log.Debug("NodeQuery FindAll: loaded tags for nodes")
-	}
-
-	if q.includeKV {
-		q.log.Debug("NodeQuery FindAll: loading KV for nodes")
-		nodeIds := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
-		}
-		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(nodeIds)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.KV = kvsByNode[n.Core.Id]
-		}
-		q.log.Debug("NodeQuery FindAll: loaded KV for nodes")
-	}
-
-	if q.includeContent {
-		q.log.Debug("NodeQuery FindAll: loading Content for nodes")
-		nodeIds := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			nodeIds = append(nodeIds, n.Core.Id)
-		}
-		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(nodeIds)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Content = contentsByNode[n.Core.Id]
-		}
-		q.log.Debug("NodeQuery FindAll: loaded Content for nodes")
+	if err := q.loadRelations(nodes); err != nil {
+		return nil, err
 	}
 
 	return nodes, nil
@@ -637,6 +657,10 @@ func (q *NodeQuery) DescendantTree(rootID string) (*TreeNode, error) {
 }
 
 func (q *NodeQuery) fetchDescendantNodes(rootID string) ([]*Node, error) {
+	if rootID == "" {
+		return nil, fmt.Errorf("nod: rootID must not be empty")
+	}
+
 	db := q.db.Model(&NodeCore{})
 
 	sql := `
@@ -661,42 +685,8 @@ SELECT * FROM tree;
 		nodes = append(nodes, &Node{Core: nc})
 	}
 
-	if q.includeTags {
-		tagsByNode, err := loadTagsByNode(q.db, nodes)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Tags = tagsByNode[n.Core.Id]
-		}
-	}
-
-	if q.includeKV {
-		ids := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			ids = append(ids, n.Core.Id)
-		}
-		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(ids)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.KV = kvsByNode[n.Core.Id]
-		}
-	}
-
-	if q.includeContent {
-		ids := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			ids = append(ids, n.Core.Id)
-		}
-		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(ids)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Content = contentsByNode[n.Core.Id]
-		}
+	if err := q.loadRelations(nodes); err != nil {
+		return nil, err
 	}
 
 	return nodes, nil
@@ -740,6 +730,10 @@ func (q *NodeQuery) buildTree(rootID string) (*TreeNode, error) {
 }
 
 func (q *NodeQuery) fetchAncestorNodes(childID string) ([]*Node, error) {
+	if childID == "" {
+		return nil, fmt.Errorf("nod: childID must not be empty")
+	}
+
 	db := q.db.Model(&NodeCore{})
 
 	sql := `
@@ -764,42 +758,8 @@ SELECT * FROM path;
 		nodes = append(nodes, &Node{Core: nc})
 	}
 
-	if q.includeTags {
-		tagsByNode, err := loadTagsByNode(q.db, nodes)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Tags = tagsByNode[n.Core.Id]
-		}
-	}
-
-	if q.includeKV {
-		ids := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			ids = append(ids, n.Core.Id)
-		}
-		kvsByNode, err := (&KVRepository{DB: q.db}).GetAllForNodes(ids)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.KV = kvsByNode[n.Core.Id]
-		}
-	}
-
-	if q.includeContent {
-		ids := make([]string, 0, len(nodes))
-		for _, n := range nodes {
-			ids = append(ids, n.Core.Id)
-		}
-		contentsByNode, err := (&ContentRepository{DB: q.db}).GetAllForNodes(ids)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range nodes {
-			n.Content = contentsByNode[n.Core.Id]
-		}
+	if err := q.loadRelations(nodes); err != nil {
+		return nil, err
 	}
 
 	return nodes, nil

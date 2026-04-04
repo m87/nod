@@ -1,5 +1,7 @@
 package nod
 
+import "time"
+
 // TypedRepository provides type-safe access to the repository for a specific model type.
 type TypedRepository[T any] struct {
 	repository *Repository
@@ -69,6 +71,65 @@ func (tq *TypedQuery[T]) StatusEquals(v string) *TypedQuery[T] { tq.query.Status
 func (tq *TypedQuery[T]) StatusContains(v string) *TypedQuery[T] {
 	tq.query.StatusContains(v)
 	return tq
+}
+func (tq *TypedQuery[T]) StatusStartsWith(v string) *TypedQuery[T] {
+	tq.query.StatusStartsWith(v)
+	return tq
+}
+func (tq *TypedQuery[T]) StatusEndsWith(v string) *TypedQuery[T] {
+	tq.query.StatusEndsWith(v)
+	return tq
+}
+func (tq *TypedQuery[T]) NodeIds(ids []string) *TypedQuery[T] {
+	tq.query.NodeIds(ids)
+	return tq
+}
+func (tq *TypedQuery[T]) ParentIds(ids []string) *TypedQuery[T] {
+	tq.query.ParentIds(ids)
+	return tq
+}
+func (tq *TypedQuery[T]) NamespaceIds(ids []string) *TypedQuery[T] {
+	tq.query.NamespaceIds(ids)
+	return tq
+}
+func (tq *TypedQuery[T]) Name(f *StringFilter) *TypedQuery[T]   { tq.query.Name(f); return tq }
+func (tq *TypedQuery[T]) Kind(f *StringFilter) *TypedQuery[T]   { tq.query.Kind(f); return tq }
+func (tq *TypedQuery[T]) Status(f *StringFilter) *TypedQuery[T] { tq.query.Status(f); return tq }
+func (tq *TypedQuery[T]) CreatedDate(f *TimeFilter) *TypedQuery[T] {
+	tq.query.CreatedDate(f)
+	return tq
+}
+func (tq *TypedQuery[T]) CreatedDateFrom(from time.Time) *TypedQuery[T] {
+	tq.query.CreatedDateFrom(from)
+	return tq
+}
+func (tq *TypedQuery[T]) CreatedDateTo(to time.Time) *TypedQuery[T] {
+	tq.query.CreatedDateTo(to)
+	return tq
+}
+func (tq *TypedQuery[T]) CreatedBetween(from, to time.Time) *TypedQuery[T] {
+	tq.query.CreatedBetween(from, to)
+	return tq
+}
+func (tq *TypedQuery[T]) UpdatedDate(f *TimeFilter) *TypedQuery[T] {
+	tq.query.UpdatedDate(f)
+	return tq
+}
+func (tq *TypedQuery[T]) UpdatedDateFrom(from time.Time) *TypedQuery[T] {
+	tq.query.UpdatedDateFrom(from)
+	return tq
+}
+func (tq *TypedQuery[T]) UpdatedDateTo(to time.Time) *TypedQuery[T] {
+	tq.query.UpdatedDateTo(to)
+	return tq
+}
+func (tq *TypedQuery[T]) UpdatedBetween(from, to time.Time) *TypedQuery[T] {
+	tq.query.UpdatedBetween(from, to)
+	return tq
+}
+func (tq *TypedQuery[T]) HasChildren() (bool, error) { return tq.query.HasChildren() }
+func (tq *TypedQuery[T]) Clone() *TypedQuery[T] {
+	return &TypedQuery[T]{query: tq.query.Clone()}
 }
 func (tq *TypedQuery[T]) List() ([]*T, error)   { return ListAs[T](tq.query) }
 func (tq *TypedQuery[T]) First() (*T, error)    { return FirstAs[T](tq.query) }
