@@ -8,10 +8,9 @@ import (
 
 // KV represents a key-value attribute attached to a node.
 type KV struct {
-	NodeId      string    `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
-	Node        *NodeCore `gorm:"foreignKey:NodeId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Key         string    `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
-	ValueText   *string   `gorm:"type:text"`
+	NodeId      string  `gorm:"type:char(36);primaryKey;index:idx_kv_node_id,priority:1"`
+	Key         string  `gorm:"type:text;primaryKey;index:idx_kv_key,priority:2"`
+	ValueText   *string `gorm:"type:text"`
 	ValueNumber *float64
 	ValueInt    *int   `gorm:"type:integer"`
 	ValueInt64  *int64 `gorm:"type:bigint"`
