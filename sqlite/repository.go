@@ -11,7 +11,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const sharedMemoryDSN = "file::memory:?cache=shared"
+const sharedMemoryDSN = "file::memory:?mode=memory&cache=shared"
 
 // NewRepository creates a new nod Repository backed by SQLite at the given path.
 // Use ":memory:" for an in-memory database.
