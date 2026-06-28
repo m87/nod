@@ -1,6 +1,7 @@
 package nod
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
@@ -75,8 +76,17 @@ func Migrate(db *gorm.DB, options ...MigrationOption) error {
 		}
 	}
 
-	if err := db.AutoMigrate(nodSchemaModels()...); err != nil {
-		return err
+	migrateSchema := func() error {
+		return db.AutoMigrate(nodSchemaModels()...)
+	}
+	if needsLegacyMigration && db.Dialector.Name() == "sqlite" {
+		if err := withSQLiteForeignKeysDisabled(db, migrateSchema); err != nil {
+			return err
+		}
+	} else {
+		if err := migrateSchema(); err != nil {
+			return err
+		}
 	}
 
 	if !hasVersion || version < CurrentSchemaVersion {
@@ -136,6 +146,71 @@ func writeSchemaVersion(db *gorm.DB, version int) error {
 		Key:   schemaVersionPropertyKey,
 		Value: strconv.Itoa(version),
 	}).Error
+}
+
+func withSQLiteForeignKeysDisabled(db *gorm.DB, fn func() error) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	previousMaxOpenConns := sqlDB.Stats().MaxOpenConnections
+	sqlDB.SetMaxOpenConns(1)
+	defer sqlDB.SetMaxOpenConns(previousMaxOpenConns)
+
+	if err := setSQLiteForeignKeys(db, false); err != nil {
+		return err
+	}
+
+	migrationErr := fn()
+	enableErr := setSQLiteForeignKeys(db, true)
+	var checkErr error
+	if enableErr == nil {
+		checkErr = checkSQLiteForeignKeys(db)
+	}
+	return errors.Join(migrationErr, enableErr, checkErr)
+}
+
+func setSQLiteForeignKeys(db *gorm.DB, enabled bool) error {
+	value := "OFF"
+	expected := 0
+	if enabled {
+		value = "ON"
+		expected = 1
+	}
+
+	if err := db.Exec("PRAGMA foreign_keys = " + value).Error; err != nil {
+		return err
+	}
+
+	var actual int
+	if err := db.Raw("PRAGMA foreign_keys;").Scan(&actual).Error; err != nil {
+		return err
+	}
+	if actual != expected {
+		return fmt.Errorf("nod: sqlite foreign_keys pragma is %d, expected %d", actual, expected)
+	}
+	return nil
+}
+
+func checkSQLiteForeignKeys(db *gorm.DB) error {
+	type foreignKeyFailure struct {
+		Table  string        `gorm:"column:table"`
+		RowID  sql.NullInt64 `gorm:"column:rowid"`
+		Parent string        `gorm:"column:parent"`
+		FKID   int           `gorm:"column:fkid"`
+	}
+
+	var failures []foreignKeyFailure
+	if err := db.Raw("PRAGMA foreign_key_check;").Scan(&failures).Error; err != nil {
+		return err
+	}
+	if len(failures) == 0 {
+		return nil
+	}
+
+	first := failures[0]
+	return fmt.Errorf("nod: sqlite foreign key check failed after migration: table=%s rowid=%v parent=%s fkid=%d failures=%d", first.Table, first.RowID, first.Parent, first.FKID, len(failures))
 }
 
 func cleanupLegacyRows(db *gorm.DB) error {

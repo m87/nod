@@ -92,6 +92,12 @@ func TestMigrate_LegacySchemaCleansRowsAndAddsConstraints(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, child.ParentId)
 
+	var validChild nod.NodeCore
+	err = db.First(&validChild, "id = ?", "valid-child").Error
+	require.NoError(t, err)
+	require.NotNil(t, validChild.ParentId)
+	require.Equal(t, "valid-parent", *validChild.ParentId)
+
 	err = db.Create(&nod.KV{NodeId: "missing-node", Key: "blocked", ValueText: ptr("v")}).Error
 	require.Error(t, err)
 
@@ -153,6 +159,10 @@ func seedLegacyRows(t *testing.T, db *gorm.DB) {
 		 VALUES ('node', 'kind', 'active', 'node', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
 		`INSERT INTO node_cores (id, parent_id, kind, status, name, created_at, updated_at)
 		 VALUES ('child', 'missing-parent', 'kind', 'active', 'child', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		`INSERT INTO node_cores (id, parent_id, kind, status, name, created_at, updated_at)
+		 VALUES ('valid-child', 'valid-parent', 'kind', 'active', 'valid-child', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		`INSERT INTO node_cores (id, kind, status, name, created_at, updated_at)
+		 VALUES ('valid-parent', 'kind', 'active', 'valid-parent', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
 		`INSERT INTO tags (id, name, created_at)
 		 VALUES ('tag', 'tag', CURRENT_TIMESTAMP)`,
 		`INSERT INTO node_tags (node_id, tag_id)
