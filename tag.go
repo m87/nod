@@ -16,8 +16,10 @@ type Tag struct {
 
 // NodeTag represents the many-to-many relationship between nodes and tags.
 type NodeTag struct {
-	NodeId string `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:1"`
-	TagId  string `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:2"`
+	NodeId string    `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:1"`
+	Node   *NodeCore `gorm:"foreignKey:NodeId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	TagId  string    `gorm:"type:char(36);primaryKey;index:idx_node_tag,priority:2"`
+	Tag    *Tag      `gorm:"foreignKey:TagId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 // TagRepository provides methods for managing tags in the database.

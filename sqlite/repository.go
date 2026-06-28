@@ -15,15 +15,15 @@ const sharedMemoryDSN = "file::memory:?mode=memory&cache=shared"
 
 // NewRepository creates a new nod Repository backed by SQLite at the given path.
 // Use ":memory:" for an in-memory database.
-func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
-	db, err := initDB(log, path)
+func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry, options ...nod.MigrationOption) (*nod.Repository, error) {
+	db, err := initDB(log, path, options...)
 	if err != nil {
 		return nil, err
 	}
 	return nod.NewRepository(db, log, mappers), nil
 }
 
-func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
+func initDB(log *slog.Logger, path string, options ...nod.MigrationOption) (*gorm.DB, error) {
 	log.Debug(">> open database", slog.String("path", path))
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
 		DSN:        path,
@@ -45,8 +45,7 @@ func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
 	log.Debug("<< foreign keys enabled")
 
 	log.Debug(">> migrate database")
-	err = db.AutoMigrate(&nod.NodeCore{}, &nod.Tag{}, &nod.NodeTag{}, &nod.KV{}, &nod.Content{})
-	if err != nil {
+	if err := nod.Migrate(db, options...); err != nil {
 		return nil, err
 	}
 
