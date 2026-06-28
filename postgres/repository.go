@@ -9,8 +9,8 @@ import (
 )
 
 // NewRepository creates a new nod Repository backed by PostgreSQL at the given DSN.
-func NewRepository(dsn string, log *slog.Logger, mappers *nod.MapperRegistry, options ...nod.MigrationOption) (*nod.Repository, error) {
-	db, err := initDB(log, dsn, options...)
+func NewRepository(dsn string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+	db, err := initDB(log, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func NewRepository(dsn string, log *slog.Logger, mappers *nod.MapperRegistry, op
 	return nod.NewRepository(db, log, mappers), nil
 }
 
-func initDB(log *slog.Logger, dsn string, options ...nod.MigrationOption) (*gorm.DB, error) {
+func initDB(log *slog.Logger, dsn string) (*gorm.DB, error) {
 	log.Debug(">> open database")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -27,7 +27,7 @@ func initDB(log *slog.Logger, dsn string, options ...nod.MigrationOption) (*gorm
 	log.Debug("<< database opened")
 
 	log.Debug(">> migrate database")
-	if err := nod.Migrate(db, options...); err != nil {
+	if err := nod.Migrate(db); err != nil {
 		return nil, err
 	}
 	log.Debug("<< database migrated")
