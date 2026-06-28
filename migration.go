@@ -217,12 +217,14 @@ func cleanupLegacyRows(db *gorm.DB) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if tx.Migrator().HasTable(&NodeCore{}) {
 			if err := tx.Exec(`
-UPDATE node_cores
-SET parent_id = NULL
-WHERE parent_id IS NOT NULL
-  AND parent_id <> ''
-  AND parent_id NOT IN (SELECT id FROM node_cores)
-`).Error; err != nil {
+	UPDATE node_cores
+	SET parent_id = NULL
+	WHERE parent_id IS NOT NULL
+	  AND (
+	    parent_id = ''
+	    OR parent_id NOT IN (SELECT id FROM node_cores)
+	  )
+	`).Error; err != nil {
 				return err
 			}
 		}

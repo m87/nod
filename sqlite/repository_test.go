@@ -92,6 +92,11 @@ func TestMigrate_LegacySchemaCleansRowsAndAddsConstraints(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, child.ParentId)
 
+	var emptyParent nod.NodeCore
+	err = db.First(&emptyParent, "id = ?", "empty-parent").Error
+	require.NoError(t, err)
+	require.Nil(t, emptyParent.ParentId)
+
 	var validChild nod.NodeCore
 	err = db.First(&validChild, "id = ?", "valid-child").Error
 	require.NoError(t, err)
@@ -159,6 +164,8 @@ func seedLegacyRows(t *testing.T, db *gorm.DB) {
 		 VALUES ('node', 'kind', 'active', 'node', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
 		`INSERT INTO node_cores (id, parent_id, kind, status, name, created_at, updated_at)
 		 VALUES ('child', 'missing-parent', 'kind', 'active', 'child', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		`INSERT INTO node_cores (id, parent_id, kind, status, name, created_at, updated_at)
+		 VALUES ('empty-parent', '', 'kind', 'active', 'empty-parent', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
 		`INSERT INTO node_cores (id, parent_id, kind, status, name, created_at, updated_at)
 		 VALUES ('valid-child', 'valid-parent', 'kind', 'active', 'valid-child', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
 		`INSERT INTO node_cores (id, kind, status, name, created_at, updated_at)
