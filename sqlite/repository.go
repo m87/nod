@@ -23,6 +23,15 @@ func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (
 	return nod.NewRepository(db, log, mappers), nil
 }
 
+// NewRepositoryInMemory creates a new nod Repository backed by an in-memory SQLite database.
+func NewRepositoryInMemory(log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+	db, err := initDB(log, sharedMemoryDSN)
+	if err != nil {
+		return nil, err
+	}
+	return nod.NewRepository(db, log, mappers), nil
+}
+
 func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
 	log.Debug(">> open database", slog.String("path", path))
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
