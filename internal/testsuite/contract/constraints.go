@@ -124,7 +124,7 @@ func testConstraints(t *testing.T, factory RepositoryFactory) {
 			require.Nil(t, child.ParentId)
 		})
 
-		t.Run("DeleteNodeCascadesChildrenRows", func(t *testing.T) {
+		t.Run("DeleteNodeCascadesAttachedRows", func(t *testing.T) {
 			repo := factory(t)
 			defer closeRepo(t, repo)
 
