@@ -8,6 +8,7 @@ import (
 	"github.com/m87/nod"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	_ "modernc.org/sqlite"
 )
 
@@ -37,7 +38,9 @@ func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
 		DSN:        path,
 		DriverName: "sqlite",
-	}), &gorm.Config{})
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -49,6 +48,5 @@ func TestPostgresRepository_MissingDSNSkips(t *testing.T) {
 	}
 
 	_, err := NewRepository("", slog.Default(), nod.NewMapperRegistry())
-	require.Error(t, err)
-	require.NotEmpty(t, fmt.Sprint(err))
+	require.ErrorIs(t, err, errMissingDSN)
 }
