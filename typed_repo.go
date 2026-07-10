@@ -7,9 +7,9 @@ type TypedRepository[T any] struct {
 	repository *Repository
 }
 
-// As creates a TypedRepository for a given model type.
-func As[T any](repository *Repository) TypedRepository[T] {
-	return TypedRepository[T]{repository: repository}
+// NewTypedRepository creates a type-safe repository view for T.
+func NewTypedRepository[T any](repository *Repository) *TypedRepository[T] {
+	return &TypedRepository[T]{repository: repository}
 }
 
 // Untyped returns the underlying untyped Repository.
@@ -27,6 +27,11 @@ func (tr TypedRepository[T]) Transaction(fn func(repo *TypedRepository[T]) error
 // Save persists a model of type T in the repository.
 func (tr TypedRepository[T]) Save(model *T) (string, error) {
 	return Save(tr.repository, model)
+}
+
+// NodeAs maps a Node to T when the registered mapper is applicable.
+func (tr TypedRepository[T]) NodeAs(node *Node) (*T, error) {
+	return nodeAs[T](tr.repository.mappers, node)
 }
 
 // Query creates a new TypedQuery for the model type T.
@@ -87,6 +92,12 @@ func (tq *TypedQuery[T]) NodeIds(ids []string) *TypedQuery[T] {
 func (tq *TypedQuery[T]) ParentIds(ids []string) *TypedQuery[T] {
 	tq.query.ParentIds(ids)
 	return tq
+}
+
+// Parents selects the direct parents of nodes matching the current query.
+// It keeps T as the result type. Use QueryAs to select another result type.
+func (tq *TypedQuery[T]) Parents() *TypedQuery[T] {
+	return &TypedQuery[T]{query: tq.query.Parents()}
 }
 func (tq *TypedQuery[T]) NamespaceIds(ids []string) *TypedQuery[T] {
 	tq.query.NamespaceIds(ids)
@@ -151,4 +162,10 @@ func (tq *TypedQuery[T]) AncestorTree(childID string) (*TypedTreeNode[T], error)
 
 func (tq *TypedQuery[T]) Ancestors() ([]*TypedTreeNode[T], error) {
 	return AncestorsAs[T](tq.query)
+}
+
+// QueryAs changes the result type of a typed query. The target mapper is used by
+// terminal mapping operations such as List and First. TSource is inferred.
+func QueryAs[TTarget, TSource any](query *TypedQuery[TSource]) *TypedQuery[TTarget] {
+	return &TypedQuery[TTarget]{query: query.query.Clone()}
 }

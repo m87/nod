@@ -74,7 +74,7 @@ func main() {
 	nod.RegisterMapper(registry, MyMapper{})
 	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), registry)
 
-	typed := nod.As[MyNode](repo)
+	typed := nod.NewTypedRepository[MyNode](repo)
 	typed.Save(&MyNode{Name: "example"})
 	found, _ := typed.Query().NameEquals("example").First()
 }

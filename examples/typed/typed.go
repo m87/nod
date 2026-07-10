@@ -31,7 +31,7 @@ func main() {
 	registry := nod.NewMapperRegistry()
 	nod.RegisterMapper(registry, MyMapper{})
 	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), registry)
-	typedRepo := nod.As[MyNode](repo)
+	typedRepo := nod.NewTypedRepository[MyNode](repo)
 
 	node := &MyNode{name: "example"}
 	typedRepo.Save(node)

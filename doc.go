@@ -10,9 +10,10 @@
 //	repo.Save(&nod.Node{Core: nod.NodeCore{Name: "root", Kind: "folder"}})
 //	found, _ := repo.Query().NameEquals("root").First()
 //
-// For typed domain models, register a [NodeMapper] and use [As] to obtain a [TypedRepository]:
+// For typed domain models, register a [NodeMapper] and use [NewTypedRepository]
+// to obtain a [TypedRepository]:
 //
 //	nod.RegisterMapper(registry, myMapper{})
-//	typed := nod.As[MyModel](repo)
+//	typed := nod.NewTypedRepository[MyModel](repo)
 //	typed.Save(&MyModel{Name: "example"})
 package nod

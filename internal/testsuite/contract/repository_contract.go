@@ -16,5 +16,6 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 	t.Run("Constraints", func(t *testing.T) { testConstraints(t, factory) })
 	t.Run("Migration", func(t *testing.T) { testMigration(t, factory) })
 	t.Run("TypedRepositorySaveAndQuery", func(t *testing.T) { testTypedRepositorySaveAndQuery(t, factory) })
+	t.Run("TypedParentsAndConversion", func(t *testing.T) { testTypedParentsAndConversion(t, factory) })
 	t.Run("RepositoryClose", func(t *testing.T) { testRepositoryClose(t, factory) })
 }

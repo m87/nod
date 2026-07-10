@@ -116,7 +116,7 @@ func testQueryRegressions(t *testing.T, factory RepositoryFactory) {
 		require.NoError(t, err)
 
 		nod.RegisterMapper(repo.Mappers(), contractModelMapper{})
-		typed := nod.As[contractModel](repo)
+		typed := nod.NewTypedRepository[contractModel](repo)
 
 		id, err := typed.Save(&contractModel{
 			ID:   "typed-match",
