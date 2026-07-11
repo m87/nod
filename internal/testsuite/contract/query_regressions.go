@@ -72,8 +72,8 @@ func testQueryRegressions(t *testing.T, factory RepositoryFactory) {
 		require.NoError(t, err)
 
 		nodes, err := repo.Query().
-			KVFilter(&nod.KVFilter{Key: ptr("color"), TextEquals: ptr("red")}).
-			KVFilter(&nod.KVFilter{Key: ptr("size"), TextEquals: ptr("xl")}).
+			KVFilter(&nod.KVFilter{Key: "color", TextEquals: ptr("red")}).
+			KVFilter(&nod.KVFilter{Key: "size", TextEquals: ptr("xl")}).
 			List()
 		require.NoError(t, err)
 		require.Len(t, nodes, 1)
@@ -101,7 +101,7 @@ func testQueryRegressions(t *testing.T, factory RepositoryFactory) {
 		require.NoError(t, err)
 
 		nodes, err := repo.Query().
-			KVFilter(&nod.KVFilter{Key: ptr("label"), TextContains: ptr("%")}).
+			KVFilter(&nod.KVFilter{Key: "label", TextContains: ptr("%")}).
 			List()
 		require.NoError(t, err)
 		require.Len(t, nodes, 1)

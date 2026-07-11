@@ -21,7 +21,7 @@ type KV struct {
 
 // KVFilter defines filters for querying key-value pairs.
 type KVFilter struct {
-	Key               *string
+	Key               string
 	TextContains      *string
 	NumberEquals      *float64
 	IntEquals         *int
@@ -103,9 +103,7 @@ func (r *KVRepository) Query(filters []*KVFilter) ([]*KV, error) {
 	db := r.DB.Model(&KV{})
 
 	for _, filter := range filters {
-		if filter.Key != nil {
-			db = db.Where("key = ?", *filter.Key)
-		}
+		db = db.Where("key = ?", filter.Key)
 		if filter.TextContains != nil {
 			db = db.Where("value_text LIKE ?", "%"+*filter.TextContains+"%")
 		}
