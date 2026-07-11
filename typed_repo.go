@@ -94,10 +94,9 @@ func (tq *TypedQuery[T]) ParentIds(ids []string) *TypedQuery[T] {
 	return tq
 }
 
-// Parents selects the direct parents of nodes matching the current query.
-// It keeps T as the result type. Use QueryAs to select another result type.
-func (tq *TypedQuery[T]) Parents() *TypedQuery[T] {
-	return &TypedQuery[T]{query: tq.query.Parents()}
+// CollectParentIDs returns the distinct parent IDs of models matching the query.
+func (tq *TypedQuery[T]) CollectParentIDs() ([]string, error) {
+	return tq.query.CollectParentIDs()
 }
 func (tq *TypedQuery[T]) NamespaceIds(ids []string) *TypedQuery[T] {
 	tq.query.NamespaceIds(ids)

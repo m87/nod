@@ -44,7 +44,6 @@ type NodeQuery struct {
 	page           int
 	pageSize       int
 	mappers        *MapperRegistry
-	parentsOf      *NodeQuery
 }
 
 // TreeNode represents a node in a tree structure with its children.
@@ -77,9 +76,6 @@ func (q *NodeQuery) Clone() *NodeQuery {
 		page:           q.page,
 		pageSize:       q.pageSize,
 		kind:           q.kind,
-	}
-	if q.parentsOf != nil {
-		clone.parentsOf = q.parentsOf.Clone()
 	}
 	clone.nodeIds = append([]string{}, q.nodeIds...)
 	clone.parentIds = append([]string{}, q.parentIds...)
@@ -192,21 +188,6 @@ func (q *NodeQuery) NodeIds(nodeIds []string) *NodeQuery {
 func (q *NodeQuery) ParentIds(parentIds []string) *NodeQuery {
 	q.parentIds = append(q.parentIds, parentIds...)
 	return q
-}
-
-// Parents returns a new query selecting the direct parents of nodes matching q.
-// Filters already present on q select the children. Filters added to the returned
-// query select the parents.
-func (q *NodeQuery) Parents() *NodeQuery {
-	return &NodeQuery{
-		db:             q.db,
-		log:            q.log,
-		mappers:        q.mappers,
-		includeTags:    q.includeTags,
-		includeKV:      q.includeKV,
-		includeContent: q.includeContent,
-		parentsOf:      q.Clone(),
-	}
 }
 
 func (q *NodeQuery) NamespaceIds(namespaceIds []string) *NodeQuery {
@@ -425,14 +406,6 @@ func ApplyTimeFilter(db *gorm.DB, field string, filter *TimeFilter) *gorm.DB {
 
 // ApplyCommonFilters applies standard node filters (IDs, names, dates, etc.) to a GORM query.
 func ApplyCommonFilters(db *gorm.DB, t *NodeQuery) *gorm.DB {
-	if t.parentsOf != nil {
-		children := t.parentsOf.db.Model(&NodeCore{}).
-			Select("parent_id").
-			Where("parent_id IS NOT NULL").
-			Distinct()
-		children = t.parentsOf.ApplyConditions(children)
-		db = db.Where("id IN (?)", children)
-	}
 	if len(t.nodeIds) > 0 {
 		db = db.Where("id IN ?", t.nodeIds)
 	}
@@ -580,6 +553,20 @@ func (q *NodeQuery) Exists() (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// CollectParentIDs returns the distinct parent IDs of nodes matching the query.
+func (q *NodeQuery) CollectParentIDs() ([]string, error) {
+	db := q.db.Model(&NodeCore{}).
+		Where("parent_id IS NOT NULL").
+		Where("parent_id <> ?", "")
+	db = q.ApplyConditions(db)
+
+	var parentIDs []string
+	if err := db.Distinct().Pluck("parent_id", &parentIDs).Error; err != nil {
+		return nil, err
+	}
+	return parentIDs, nil
 }
 
 func (q *NodeQuery) HasChildren() (bool, error) {

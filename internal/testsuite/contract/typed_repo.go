@@ -82,12 +82,11 @@ func testTypedParentsAndConversion(t *testing.T, factory RepositoryFactory) {
 	views := nod.NewTypedRepository[contractModelView](repo)
 	children := models.Query().NameStartsWith("wanted-child")
 
-	sameType, err := children.Parents().NameEquals("matching-parent").List()
+	parentIDs, err := children.CollectParentIDs()
 	require.NoError(t, err)
-	require.Len(t, sameType, 1)
-	require.Equal(t, parentID, sameType[0].ID)
+	require.Equal(t, []string{parentID}, parentIDs)
 
-	otherType, err := nod.QueryAs[contractModelView](children.Parents()).List()
+	otherType, err := nod.QueryAs[contractModelView](models.Query().NodeIds(parentIDs)).List()
 	require.NoError(t, err)
 	require.Equal(t, []*contractModelView{{ID: parentID, Name: "matching-parent"}}, otherType)
 
