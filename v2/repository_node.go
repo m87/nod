@@ -49,12 +49,18 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 }
 
 // DeleteNode deletes the given node from the repository.
-func (scope *NodeScope[T]) DeleteNode(node *T) error {
-	if node == nil {
+func (scope *NodeScope[T]) DeleteNode(model *T) error {
+	if model == nil {
 		return NewNodeIsNilError()
 	}
 
-	return nil
+	node, err := nodeFromModel(scope.repository.mappers, model)
+	if err != nil {
+		return err
+	}
+	return scope.repository.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&node.Core).Error
+	})
 }
 
 func (scope *NodeScope[T]) GetNode(id string) (*T, error) {

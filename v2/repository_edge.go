@@ -1,5 +1,10 @@
 package nod
 
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
 // EdgeScope is a generic struct that provides methods for managing edges in a repository.
 type EdgeScope[T any] struct {
 	repository *Repository
@@ -20,24 +25,49 @@ func Edges[T any](repository *Repository) *EdgeScope[T] {
 }
 
 // SaveEdge saves the given edge to the repository.
-func (scope *EdgeScope[T]) SaveEdge(edge *T) error {
-	if edge == nil {
-		return NewEdgeIsNilError()
+func (scope *EdgeScope[T]) SaveEdge(model *T) (string, error) {
+	if model == nil {
+		return "", NewEdgeIsNilError()
 	}
 
-	return nil
+	edge, err := edgeFromModel(scope.repository.mappers, model)
+	if err != nil {
+		return "", err
+	}
+
+	id := ensureEdgeID(edge)
+	err = scope.repository.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Save(&edge.Core).Error
+	})
+	return id, err
 }
 
 // DeleteEdge deletes the given edge from the repository.
-func (scope *EdgeScope[T]) DeleteEdge(edge *T) error {
-	if edge == nil {
+func (scope *EdgeScope[T]) DeleteEdge(model *T) error {
+	if model == nil {
 		return NewEdgeIsNilError()
 	}
 
-	return nil
+	edge, err := edgeFromModel(scope.repository.mappers, model)
+	if err != nil {
+		return err
+	}
+	return scope.repository.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&edge.Core).Error
+	})
 }
 
 func (scope *EdgeScope[T]) GetEdge(id string) (*T, error) {
-	// Placeholder for actual implementation to retrieve an edge by ID.
-	return nil, nil
+	edge := &Edge{}
+	if err := scope.repository.db.First(&edge.Core, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return modelFromEdge[T](scope.repository.mappers, edge)
+}
+
+func ensureEdgeID(edge *Edge) string {
+	if edge.Core.Id == "" {
+		edge.Core.Id = uuid.New().String()
+	}
+	return edge.Core.Id
 }
