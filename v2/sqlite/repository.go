@@ -1,7 +1,6 @@
 package sqlite
 
 import (
-	"errors"
 	"log/slog"
 	"strings"
 
@@ -87,7 +86,7 @@ func enableForeignKeys(db *gorm.DB) error {
 	}
 
 	if enabled != 1 {
-		return errors.New("sqlite foreign_keys pragma is disabled")
+		return NewForeignKeysDisabledError()
 	}
 
 	return nil

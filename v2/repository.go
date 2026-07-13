@@ -13,6 +13,9 @@ type Repository struct {
 }
 
 func NewRepository(db *gorm.DB, log *slog.Logger, mappers *MapperRegistry) *Repository {
+	if mappers == nil {
+		mappers = NewMapperRegistry()
+	}
 	return &Repository{
 		db:      db,
 		log:     log,
