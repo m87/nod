@@ -12,6 +12,32 @@ func ensureNodeID(node *Node) string {
 	return node.Core.Id
 }
 
+func ensureEdgeID(edge *Edge) string {
+	if edge.Core.Id == "" {
+		edge.Core.Id = uuid.New().String()
+	}
+	return edge.Core.Id
+}
+
+func saveEdge(tx *gorm.DB, edge *Edge) error {
+	if err := tx.Save(&edge.Core).Error; err != nil {
+		return err
+	}
+
+	kvRepo := &EdgeKVRepository{DB: tx}
+	if err := kvRepo.DeleteAll(edge.Core.Id); err != nil {
+		return err
+	}
+	for _, kv := range edge.KV {
+		kv.EdgeId = edge.Core.Id
+		if err := kvRepo.Set(kv); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func saveNodeGraph(tx *gorm.DB, node *Node) error {
 	if err := tx.Save(&node.Core).Error; err != nil {
 		return err

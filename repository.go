@@ -71,6 +71,31 @@ func (r *Repository) Transaction(fc func(txRepo *Repository) error) error {
 	})
 }
 
+func (r *Repository) DeleteEdge(edgeId string) error {
+	if edgeId == "" {
+		return fmt.Errorf("nod: edgeId must not be empty")
+	}
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		count := int64(0)
+		db := tx.Model(&EdgeCore{})
+		if err := db.Where("parent_id = ?", edgeId).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return errors.New("cannot delete edge with children")
+		}
+
+		if err := tx.Delete(&EdgeCore{}, "id = ?", edgeId).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&EdgeKV{}, "edge_id = ?", edgeId).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (r *Repository) Delete(nodeId string) error {
 	if nodeId == "" {
 		return fmt.Errorf("nod: nodeId must not be empty")
@@ -139,4 +164,15 @@ func (r *Repository) Save(node *Node) (string, error) {
 		return "", err
 	}
 	return nodeID, nil
+}
+
+func (r *Repository) SaveEdge(edge *Edge) (string, error) {
+	edgeID := ensureEdgeID(edge)
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		return saveEdge(tx, edge)
+	})
+	if err != nil {
+		return "", err
+	}
+	return edgeID, nil
 }

@@ -9,3 +9,12 @@ type NodeMapper[T any] interface {
 	// IsApplicable returns true if the given Node can be converted by this mapper.
 	IsApplicable(*Node) bool
 }
+
+type EdgeMapper[T any] interface {
+	// ToEdge converts a model instance to an Edge representation.
+	ToEdge(*T) (*Edge, error)
+	// FromEdge reconstructs a model instance from an Edge.
+	FromEdge(*Edge) (*T, error)
+	// IsApplicable returns true if the given Edge can be converted by this mapper.
+	IsApplicable(*Edge) bool
+}

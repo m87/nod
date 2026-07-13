@@ -38,7 +38,7 @@ func postgresDSN(t *testing.T) string {
 func cleanupPostgresData(t *testing.T, repo *nod.Repository) {
 	t.Helper()
 
-	err := repo.DB().Exec("TRUNCATE TABLE node_tags, kvs, contents, tags, node_cores CASCADE").Error
+	err := repo.DB().Exec("TRUNCATE TABLE edge_kvs, edge_cores, node_tags, kvs, contents, tags, node_cores CASCADE").Error
 	require.NoError(t, err)
 }
 
