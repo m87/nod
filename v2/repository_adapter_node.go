@@ -2,24 +2,7 @@ package nod
 
 import "reflect"
 
-// NodeMapper defines the interface for converting between a domain model T and a Node.
-type NodeMapper[T any] interface {
-	ToNode(*T) (*Node, error)
-	FromNode(*Node) (*T, error)
-	IsApplicable(*Node) bool
-}
-
-type anyNodeMapper interface {
-	toNode(any) (*Node, error)
-	fromNode(*Node) (any, error)
-	isApplicable(*Node) bool
-}
-
-type erasedNodeMapper[T any] struct {
-	mapper NodeMapper[T]
-}
-
-func (mapper erasedNodeMapper[T]) toNode(model any) (*Node, error) {
+func (mapper erasedNodeAdapter[T]) toNode(model any) (*Node, error) {
 	typed, ok := model.(*T)
 	if !ok {
 		return nil, NewMapperInputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
@@ -27,16 +10,16 @@ func (mapper erasedNodeMapper[T]) toNode(model any) (*Node, error) {
 	return mapper.mapper.ToNode(typed)
 }
 
-func (mapper erasedNodeMapper[T]) fromNode(node *Node) (any, error) {
+func (mapper erasedNodeAdapter[T]) fromNode(node *Node) (any, error) {
 	return mapper.mapper.FromNode(node)
 }
 
-func (mapper erasedNodeMapper[T]) isApplicable(node *Node) bool {
+func (mapper erasedNodeAdapter[T]) isApplicable(node *Node) bool {
 	return mapper.mapper.IsApplicable(node)
 }
 
 // RegisterNodeMapper registers a node mapper for a specific type T in the registry.
-func RegisterNodeMapper[T any](registry *MapperRegistry, mapper NodeMapper[T]) error {
+func RegisterNodeAdapter[T any](registry *AdapterRegistry, mapper NodeAdapter[T]) error {
 	if registry == nil {
 		return NewMapperRegistryIsNilError()
 	}
@@ -48,21 +31,21 @@ func RegisterNodeMapper[T any](registry *MapperRegistry, mapper NodeMapper[T]) e
 	defer registry.mu.Unlock()
 
 	if registry.nodeMappers == nil {
-		registry.nodeMappers = make(map[reflect.Type]anyNodeMapper)
+		registry.nodeMappers = make(map[reflect.Type]anyNodeAdapter)
 	}
-	registry.nodeMappers[reflect.TypeFor[T]()] = &erasedNodeMapper[T]{mapper: mapper}
+	registry.nodeMappers[reflect.TypeFor[T]()] = &erasedNodeAdapter[T]{mapper: mapper}
 	return nil
 }
 
-func nodeFromModel[T any](registry *MapperRegistry, model *T) (*Node, error) {
+func nodeFromModel[T any](registry *AdapterRegistry, model *T) (*Node, error) {
 	if model == nil {
 		return nil, NewModelIsNilError(modelTypeName[T]())
 	}
 	if node, ok := any(model).(*Node); ok {
 		return node, nil
 	}
-
-	mapper, err := nodeMapperFor[T](registry)
+	//TODO resolve node codec or adapter
+	mapper, err := nodeAdapterFor[T](registry)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +59,7 @@ func nodeFromModel[T any](registry *MapperRegistry, model *T) (*Node, error) {
 	return node, nil
 }
 
-func modelFromNode[T any](registry *MapperRegistry, node *Node) (*T, error) {
+func modelFromNode[T any](registry *AdapterRegistry, node *Node) (*T, error) {
 	if node == nil {
 		return nil, NewNodeIsNilError()
 	}
@@ -84,7 +67,7 @@ func modelFromNode[T any](registry *MapperRegistry, node *Node) (*T, error) {
 		return model, nil
 	}
 
-	mapper, err := nodeMapperFor[T](registry)
+	mapper, err := nodeAdapterFor[T](registry)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +90,7 @@ func modelFromNode[T any](registry *MapperRegistry, node *Node) (*T, error) {
 	return typed, nil
 }
 
-func nodeMapperFor[T any](registry *MapperRegistry) (anyNodeMapper, error) {
+func nodeAdapterFor[T any](registry *AdapterRegistry) (anyNodeAdapter, error) {
 	t := reflect.TypeFor[T]()
 	if registry == nil {
 		return nil, NewMapperRegistryIsNilError()

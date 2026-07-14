@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-// MapperRegistry stores node and edge mappers by domain model type.
-type MapperRegistry struct {
+// AdapterRegistry stores node and edge adapters by domain model type.
+type AdapterRegistry struct {
 	mu          sync.RWMutex
 	nodeMappers map[reflect.Type]anyNodeMapper
 	edgeMappers map[reflect.Type]anyEdgeMapper
 }
 
-// Create a new MapperRegistry instance.
-func NewMapperRegistry() *MapperRegistry {
-	return &MapperRegistry{
+// Create a new AdapterRegistry instance.
+func NewAdapterRegistry() *AdapterRegistry {
+	return &AdapterRegistry{
 		nodeMappers: make(map[reflect.Type]anyNodeMapper),
 		edgeMappers: make(map[reflect.Type]anyEdgeMapper),
 	}
