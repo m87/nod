@@ -22,7 +22,7 @@ type erasedEdgeMapper[T any] struct {
 func (mapper erasedEdgeMapper[T]) toEdge(model any) (*Edge, error) {
 	typed, ok := model.(*T)
 	if !ok {
-		return nil, NewMapperInputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
+		return nil, NewAdapterInputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
 	}
 	return mapper.mapper.ToEdge(typed)
 }
@@ -36,12 +36,12 @@ func (mapper erasedEdgeMapper[T]) isApplicable(edge *Edge) bool {
 }
 
 // RegisterEdgeMapper registers an edge mapper for a specific type T in the registry.
-func RegisterEdgeMapper[T any](registry *MapperRegistry, mapper EdgeMapper[T]) error {
+func RegisterEdgeMapper[T any](registry *AdapterRegistry, mapper EdgeMapper[T]) error {
 	if registry == nil {
-		return NewMapperRegistryIsNilError()
+		return NewAdapterRegistryIsNilError()
 	}
 	if isNilValue(mapper) {
-		return NewMapperIsNilError(modelTypeName[T]())
+		return NewAdapterIsNilError(modelTypeName[T]())
 	}
 
 	registry.mu.Lock()
@@ -54,7 +54,7 @@ func RegisterEdgeMapper[T any](registry *MapperRegistry, mapper EdgeMapper[T]) e
 	return nil
 }
 
-func edgeFromModel[T any](registry *MapperRegistry, model *T) (*Edge, error) {
+func edgeFromModel[T any](registry *AdapterRegistry, model *T) (*Edge, error) {
 	if model == nil {
 		return nil, NewModelIsNilError(modelTypeName[T]())
 	}
@@ -71,12 +71,12 @@ func edgeFromModel[T any](registry *MapperRegistry, model *T) (*Edge, error) {
 		return nil, err
 	}
 	if edge == nil {
-		return nil, NewMapperReturnedNilEdgeError(modelTypeName[T]())
+		return nil, NewAdapterReturnedNilEdgeError(modelTypeName[T]())
 	}
 	return edge, nil
 }
 
-func modelFromEdge[T any](registry *MapperRegistry, edge *Edge) (*T, error) {
+func modelFromEdge[T any](registry *AdapterRegistry, edge *Edge) (*T, error) {
 	if edge == nil {
 		return nil, NewEdgeIsNilError()
 	}
@@ -89,7 +89,7 @@ func modelFromEdge[T any](registry *MapperRegistry, edge *Edge) (*T, error) {
 		return nil, err
 	}
 	if !mapper.isApplicable(edge) {
-		return nil, NewEdgeMapperNotApplicableError(modelTypeName[T](), edge.Core.Id)
+		return nil, NewEdgeAdapterNotApplicableError(modelTypeName[T](), edge.Core.Id)
 	}
 
 	model, err := mapper.fromEdge(edge)
@@ -97,27 +97,27 @@ func modelFromEdge[T any](registry *MapperRegistry, edge *Edge) (*T, error) {
 		return nil, err
 	}
 	if isNilValue(model) {
-		return nil, NewMapperReturnedNilModelError(modelTypeName[T]())
+		return nil, NewAdapterReturnedNilModelError(modelTypeName[T]())
 	}
 
 	typed, ok := model.(*T)
 	if !ok {
-		return nil, NewMapperOutputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
+		return nil, NewAdapterOutputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
 	}
 	return typed, nil
 }
 
-func edgeMapperFor[T any](registry *MapperRegistry) (anyEdgeMapper, error) {
+func edgeMapperFor[T any](registry *AdapterRegistry) (anyEdgeMapper, error) {
 	t := reflect.TypeFor[T]()
 	if registry == nil {
-		return nil, NewMapperRegistryIsNilError()
+		return nil, NewAdapterRegistryIsNilError()
 	}
 
 	registry.mu.RLock()
 	mapper := registry.edgeMappers[t]
 	registry.mu.RUnlock()
 	if mapper == nil {
-		return nil, NewMapperNotFoundError(t.String())
+		return nil, NewAdapterNotFoundError(t.String())
 	}
 	return mapper, nil
 }

@@ -1,29 +1,29 @@
 package nod
 
-type EdgeMapperNotApplicableError struct {
+type EdgeAdapterNotApplicableError struct {
 	TypeName string
 	EdgeId   string
 }
 
-func (e *EdgeMapperNotApplicableError) Error() string {
-	return "mapper for type " + e.TypeName + " is not applicable to edge: " + e.EdgeId
+func (e *EdgeAdapterNotApplicableError) Error() string {
+	return "adapter for type " + e.TypeName + " is not applicable to edge: " + e.EdgeId
 }
 
-func NewEdgeMapperNotApplicableError(typeName, edgeId string) *EdgeMapperNotApplicableError {
-	return &EdgeMapperNotApplicableError{
+func NewEdgeAdapterNotApplicableError(typeName, edgeId string) *EdgeAdapterNotApplicableError {
+	return &EdgeAdapterNotApplicableError{
 		TypeName: typeName,
 		EdgeId:   edgeId,
 	}
 }
 
-type MapperReturnedNilEdgeError struct {
+type AdapterReturnedNilEdgeError struct {
 	TypeName string
 }
 
-func (e *MapperReturnedNilEdgeError) Error() string {
-	return "mapper returned a nil edge for type: " + e.TypeName
+func (e *AdapterReturnedNilEdgeError) Error() string {
+	return "adapter returned a nil edge for type: " + e.TypeName
 }
 
-func NewMapperReturnedNilEdgeError(typeName string) *MapperReturnedNilEdgeError {
-	return &MapperReturnedNilEdgeError{TypeName: typeName}
+func NewAdapterReturnedNilEdgeError(typeName string) *AdapterReturnedNilEdgeError {
+	return &AdapterReturnedNilEdgeError{TypeName: typeName}
 }

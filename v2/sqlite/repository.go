@@ -15,7 +15,7 @@ const sharedMemoryDSN = "file::memory:?mode=memory&cache=shared"
 
 // NewRepository creates a new nod Repository backed by SQLite at the given path.
 // Use ":memory:" for an in-memory database.
-func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+func NewRepository(path string, log *slog.Logger, mappers *nod.AdapterRegistry) (*nod.Repository, error) {
 	db, err := initDB(log, path)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (
 }
 
 // NewRepositoryInMemory creates a new nod Repository backed by an in-memory SQLite database.
-func NewRepositoryInMemory(log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+func NewRepositoryInMemory(log *slog.Logger, mappers *nod.AdapterRegistry) (*nod.Repository, error) {
 	return NewRepository(sharedMemoryDSN, log, mappers)
 }
 
