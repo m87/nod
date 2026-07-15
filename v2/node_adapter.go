@@ -14,5 +14,5 @@ type anyNodeAdapter interface {
 }
 
 type erasedNodeAdapter[T any] struct {
-	mapper NodeAdapter[T]
+	adapter NodeAdapter[T]
 }

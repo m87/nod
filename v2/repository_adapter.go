@@ -7,16 +7,16 @@ import (
 
 // AdapterRegistry stores node and edge adapters by domain model type.
 type AdapterRegistry struct {
-	mu          sync.RWMutex
-	nodeMappers map[reflect.Type]anyNodeAdapter
-	edgeMappers map[reflect.Type]anyEdgeMapper
+	mu           sync.RWMutex
+	nodeAdapters map[reflect.Type]anyNodeAdapter
+	edgeAdapters map[reflect.Type]anyEdgeAdapter
 }
 
 // Create a new AdapterRegistry instance.
 func NewAdapterRegistry() *AdapterRegistry {
 	return &AdapterRegistry{
-		nodeMappers: make(map[reflect.Type]anyNodeAdapter),
-		edgeMappers: make(map[reflect.Type]anyEdgeMapper),
+		nodeAdapters: make(map[reflect.Type]anyNodeAdapter),
+		edgeAdapters: make(map[reflect.Type]anyEdgeAdapter),
 	}
 }
 

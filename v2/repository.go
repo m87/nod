@@ -7,19 +7,19 @@ import (
 )
 
 type Repository struct {
-	db      *gorm.DB
-	log     *slog.Logger
+	db       *gorm.DB
+	log      *slog.Logger
 	adapters *AdapterRegistry
 }
 
-func NewRepository(db *gorm.DB, log *slog.Logger, mappers *AdapterRegistry) *Repository {
-	if mappers == nil {
-		mappers = NewAdapterRegistry()
+func NewRepository(db *gorm.DB, log *slog.Logger, adapters *AdapterRegistry) *Repository {
+	if adapters == nil {
+		adapters = NewAdapterRegistry()
 	}
 	return &Repository{
-		db:      db,
-		log:     log,
-		adapters: mappers,
+		db:       db,
+		log:      log,
+		adapters: adapters,
 	}
 }
 

@@ -2,38 +2,38 @@ package nod
 
 import "reflect"
 
-func (mapper erasedNodeAdapter[T]) toNode(model any) (*Node, error) {
+func (adapter erasedNodeAdapter[T]) toNode(model any) (*Node, error) {
 	typed, ok := model.(*T)
 	if !ok {
 		return nil, NewAdapterInputTypeMismatchError(pointerTypeName[T](), valueTypeName(model))
 	}
-	return mapper.mapper.ToNode(typed)
+	return adapter.adapter.ToNode(typed)
 }
 
-func (mapper erasedNodeAdapter[T]) fromNode(node *Node) (any, error) {
-	return mapper.mapper.FromNode(node)
+func (adapter erasedNodeAdapter[T]) fromNode(node *Node) (any, error) {
+	return adapter.adapter.FromNode(node)
 }
 
-func (mapper erasedNodeAdapter[T]) isApplicable(node *Node) bool {
-	return mapper.mapper.IsApplicable(node)
+func (adapter erasedNodeAdapter[T]) isApplicable(node *Node) bool {
+	return adapter.adapter.IsApplicable(node)
 }
 
-// RegisterNodeMapper registers a node mapper for a specific type T in the registry.
-func RegisterNodeAdapter[T any](registry *AdapterRegistry, mapper NodeAdapter[T]) error {
+// RegisterNodeAdapter registers a node adapter for a specific type T in the registry.
+func RegisterNodeAdapter[T any](registry *AdapterRegistry, adapter NodeAdapter[T]) error {
 	if registry == nil {
 		return NewAdapterRegistryIsNilError()
 	}
-	if isNilValue(mapper) {
+	if isNilValue(adapter) {
 		return NewAdapterIsNilError(modelTypeName[T]())
 	}
 
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 
-	if registry.nodeMappers == nil {
-		registry.nodeMappers = make(map[reflect.Type]anyNodeAdapter)
+	if registry.nodeAdapters == nil {
+		registry.nodeAdapters = make(map[reflect.Type]anyNodeAdapter)
 	}
-	registry.nodeMappers[reflect.TypeFor[T]()] = &erasedNodeAdapter[T]{mapper: mapper}
+	registry.nodeAdapters[reflect.TypeFor[T]()] = &erasedNodeAdapter[T]{adapter: adapter}
 	return nil
 }
 
@@ -56,11 +56,11 @@ func nodeFromModel[T any](registry *AdapterRegistry, model *T) (*Node, error) {
 		return node, nil
 	}
 
-	mapper, err := nodeAdapterFor[T](registry)
+	adapter, err := nodeAdapterFor[T](registry)
 	if err != nil {
 		return nil, err
 	}
-	node, err := mapper.toNode(model)
+	node, err := adapter.toNode(model)
 	if err != nil {
 		return nil, err
 	}
@@ -96,15 +96,15 @@ func modelFromNode[T any](registry *AdapterRegistry, node *Node) (*T, error) {
 		return typed, nil
 	}
 
-	mapper, err := nodeAdapterFor[T](registry)
+	adapter, err := nodeAdapterFor[T](registry)
 	if err != nil {
 		return nil, err
 	}
-	if !mapper.isApplicable(node) {
+	if !adapter.isApplicable(node) {
 		return nil, NewAdapterNotApplicableError(modelTypeName[T](), node.Core.Id)
 	}
 
-	model, err := mapper.fromNode(node)
+	model, err := adapter.fromNode(node)
 	if err != nil {
 		return nil, err
 	}
@@ -126,10 +126,10 @@ func nodeAdapterFor[T any](registry *AdapterRegistry) (anyNodeAdapter, error) {
 	}
 
 	registry.mu.RLock()
-	mapper := registry.nodeMappers[t]
+	adapter := registry.nodeAdapters[t]
 	registry.mu.RUnlock()
-	if mapper == nil {
+	if adapter == nil {
 		return nil, NewAdapterNotFoundError(t.String())
 	}
-	return mapper, nil
+	return adapter, nil
 }

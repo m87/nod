@@ -9,14 +9,19 @@ import (
 )
 
 type CustomEdgeModel struct {
-	Name string
-	Key  string
+	SourceId string
+	TargetId string
+	Name     string
+	Key      string
 }
 
 func (c *CustomEdgeModel) ToEdge() (*nod.Edge, error) {
 	return &nod.Edge{
 		Core: nod.EdgeCore{
-			Name: c.Name,
+			SourceId: c.SourceId,
+			TargetId: c.TargetId,
+			Name:     c.Name,
+			Kind:     "custom-codec",
 		},
 		KV: map[string]*nod.EdgeKV{
 			"key": {Key: "key", ValueText: &c.Key},
@@ -28,6 +33,8 @@ func (c *CustomEdgeModel) FromEdge(edge *nod.Edge) error {
 	if edge == nil {
 		return nod.NewEdgeIsNilError()
 	}
+	c.SourceId = edge.Core.SourceId
+	c.TargetId = edge.Core.TargetId
 	c.Name = edge.Core.Name
 	if kv, ok := edge.KV["key"]; ok && kv.ValueText != nil {
 		c.Key = *kv.ValueText
@@ -36,30 +43,28 @@ func (c *CustomEdgeModel) FromEdge(edge *nod.Edge) error {
 }
 
 func (c *CustomEdgeModel) IsApplicable(edge *nod.Edge) bool {
-	return true
+	return edge != nil && edge.Core.Kind == "custom-codec"
 }
 
 func testCustomEdgeCodec(t *testing.T, factory RepositoryFactory) {
 	repo := factory(t)
 	defer repo.Close()
 
-	createEdgeEndpoints(t, repo)
+	sourceID, targetID := createEdgeEndpoints(t, repo)
 	edgeScope := nod.Edges[CustomEdgeModel](repo)
-	id, err := edgeScope.SaveEdge(&CustomEdgeModel{Name: "custom", Key: "value"})
+	id, err := edgeScope.SaveEdge(&CustomEdgeModel{
+		SourceId: sourceID,
+		TargetId: targetID,
+		Name:     "custom",
+		Key:      "value",
+	})
 	require.NoError(t, err)
 	require.NoError(t, uuid.Validate(id))
 
-	edge, err := repo.Edges().GetEdge(id)
+	customModel, err := edgeScope.GetEdge(id)
 	require.NoError(t, err)
-
-	customModel := &CustomEdgeModel{}
-	err = customModel.FromEdge(edge)
-	require.NoError(t, err)
+	require.Equal(t, sourceID, customModel.SourceId)
+	require.Equal(t, targetID, customModel.TargetId)
 	require.Equal(t, "custom", customModel.Name)
 	require.Equal(t, "value", customModel.Key)
-
-	newEdge, err := customModel.ToEdge()
-	require.NoError(t, err)
-	require.Equal(t, "custom", newEdge.Core.Name)
-	require.Equal(t, "value", *newEdge.KV["key"].ValueText)
 }
