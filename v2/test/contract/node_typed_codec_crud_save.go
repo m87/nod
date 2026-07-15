@@ -12,6 +12,7 @@ type CustomModelWithNodeCodec struct {
 	Active      bool
 	Description string
 	Labels      []string
+	Key         string
 }
 
 func (m *CustomModelWithNodeCodec) ToNode() (*nod.Node, error) {
@@ -41,6 +42,13 @@ func (m *CustomModelWithNodeCodec) ToNode() (*nod.Node, error) {
 		})
 	}
 
+	node.KV = map[string]*nod.NodeKV{
+		"key": {
+			Key:       "key",
+			ValueText: &m.Key,
+		},
+	}
+
 	return node, nil
 }
 
@@ -52,6 +60,7 @@ func (m *CustomModelWithNodeCodec) FromNode(node *nod.Node) error {
 	for _, tag := range node.Tags {
 		m.Labels = append(m.Labels, tag.Name)
 	}
+	m.Key = *node.KV["key"].ValueText
 	return nil
 }
 
@@ -69,6 +78,8 @@ func testCodecSave(t *testing.T, factory RepositoryFactory) {
 		Name:        "Test Model",
 		Active:      true,
 		Description: "This is a test model with NodeCodec.",
+		Labels:      []string{"label1", "label2"},
+		Key:         "value1",
 	}
 
 	nodeScope := nod.Nodes[CustomModelWithNodeCodec](repo)
@@ -84,4 +95,6 @@ func testCodecSave(t *testing.T, factory RepositoryFactory) {
 	require.Equal(t, original.Name, retrievedModel.Name)
 	require.Equal(t, original.Active, retrievedModel.Active)
 	require.Equal(t, original.Description, retrievedModel.Description)
+	require.ElementsMatch(t, original.Labels, retrievedModel.Labels)
+	require.Equal(t, original.Key, retrievedModel.Key)
 }

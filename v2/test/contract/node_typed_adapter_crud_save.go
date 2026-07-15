@@ -12,6 +12,7 @@ type CustomModelWithAdatper struct {
 	Active      bool
 	Description string
 	Labels      []string
+	Key         string
 }
 
 type CustomAdapter struct{}
@@ -27,6 +28,8 @@ func (a *CustomAdapter) FromNode(node *nod.Node) (*CustomModelWithAdatper, error
 	for _, tag := range node.Tags {
 		model.Labels = append(model.Labels, tag.Name)
 	}
+
+	model.Key = *node.KV["key"].ValueText
 
 	return model, nil
 }
@@ -58,6 +61,12 @@ func (a *CustomAdapter) ToNode(model *CustomModelWithAdatper) (*nod.Node, error)
 		})
 	}
 
+	node.KV = map[string]*nod.NodeKV{
+		"key": {
+			Key:       "key",
+			ValueText: &model.Key,
+		},
+	}
 	return node, nil
 }
 
@@ -79,6 +88,7 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 		Active:      true,
 		Description: "This is a test model with adapter.",
 		Labels:      []string{"label1", "label2"},
+		Key:         "value",
 	}
 
 	nodeScope := nod.Nodes[CustomModelWithAdatper](repo)
@@ -95,4 +105,5 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 	require.Equal(t, original.Active, retrievedModel.Active)
 	require.Equal(t, original.Description, retrievedModel.Description)
 	require.ElementsMatch(t, original.Labels, retrievedModel.Labels)
+	require.Equal(t, original.Key, retrievedModel.Key)
 }

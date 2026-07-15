@@ -92,10 +92,10 @@ func testFullNodeSave(t *testing.T, factory RepositoryFactory) {
 			{Name: "tag1"},
 			{Name: "tag2"},
 		},
-		// KV: map[string]*nod.NodeKV{
-		// 	"key1": {Key: "key1", Value: "value1"},
-		// 	"key2": {Key: "key2", Value: "value2"},
-		// },
+		KV: map[string]*nod.NodeKV{
+			"key1": {Key: "key1", ValueText: nod.Ptr("value1")},
+			"key2": {Key: "key2", ValueText: nod.Ptr("value2")},
+		},
 		Content: map[string]*nod.NodeContent{
 			"content1": {Key: "content1", Value: nod.Ptr("content value 1")},
 			"content2": {Key: "content2", Value: nod.Ptr("content value 2")},
@@ -121,9 +121,9 @@ func testFullNodeSave(t *testing.T, factory RepositoryFactory) {
 	require.Contains(t, tagNames, "tag2")
 
 	// Check key-value attributes
-	// require.Len(t, savedNode.KV, 2)
-	// require.Equal(t, "value1", *savedNode.KV["key1"].ValueText)
-	// require.Equal(t, "value2", *savedNode.KV["key2"].ValueText)
+	require.Len(t, savedNode.KV, 2)
+	require.Equal(t, "value1", *savedNode.KV["key1"].ValueText)
+	require.Equal(t, "value2", *savedNode.KV["key2"].ValueText)
 
 	// Check content
 	require.Len(t, savedNode.Content, 2)

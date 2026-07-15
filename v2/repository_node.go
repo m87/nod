@@ -42,7 +42,7 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 			return err
 		}
 
-		if err := deleteNodeContents(tx, node.Core.Id); err != nil {
+		if err := deleteNodeContents(tx, id); err != nil {
 			return err
 		}
 
@@ -57,7 +57,7 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 			return err
 		}
 
-		if err := unbindNodeTagsFromNode(tx, node.Core.Id); err != nil {
+		if err := unbindNodeTagsFromNode(tx, id); err != nil {
 			return err
 		}
 
@@ -69,6 +69,18 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 			if err := bindNodeTagToNode(tx, id, savedTag.Id); err != nil {
 				return err
 			}
+		}
+
+		kv := []*NodeKV{}
+		for _, value := range node.KV {
+			value.NodeId = id
+			kv = append(kv, value)
+		}
+		if err := deleteNodeKvs(tx, id); err != nil {
+			return err
+		}
+		if err := saveNodeKvs(tx, kv); err != nil {
+			return err
 		}
 
 		return nil
@@ -112,6 +124,16 @@ func (scope *NodeScope[T]) GetNode(id string) (*T, error) {
 		return nil, err
 	}
 	node.Tags = tags
+
+	kvsMap := make(map[string]*NodeKV)
+	kvs, err := scope.repository.getNodeKvs(id)
+	if err != nil {
+		return nil, err
+	}
+	for _, kv := range kvs {
+		kvsMap[kv.Key] = kv
+	}
+	node.KV = kvsMap
 
 	return modelFromNode[T](scope.repository.adapters, node)
 }
