@@ -57,6 +57,20 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 			return err
 		}
 
+		if err := unbindNodeTagsFromNode(tx, node.Core.Id); err != nil {
+			return err
+		}
+
+		for _, tag := range node.Tags {
+			savedTag, err := saveNodeTagIfNotExists(tx, node.Core.NamespaceId, tag.Name)
+			if err != nil {
+				return err
+			}
+			if err := bindNodeTagToNode(tx, id, savedTag.Id); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -92,6 +106,12 @@ func (scope *NodeScope[T]) GetNode(id string) (*T, error) {
 		contentMap[c.Key] = c
 	}
 	node.Content = contentMap
+
+	tags, err := scope.repository.getNodeTags(id)
+	if err != nil {
+		return nil, err
+	}
+	node.Tags = tags
 
 	return modelFromNode[T](scope.repository.adapters, node)
 }

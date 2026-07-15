@@ -8,9 +8,10 @@ import (
 )
 
 type CustomModelWithAdatper struct {
-	Name   string
-	Active bool
+	Name        string
+	Active      bool
 	Description string
+	Labels      []string
 }
 
 type CustomAdapter struct{}
@@ -22,6 +23,10 @@ func (a *CustomAdapter) FromNode(node *nod.Node) (*CustomModelWithAdatper, error
 	}
 
 	model.Description = *node.Content["description"].Value
+	model.Labels = []string{}
+	for _, tag := range node.Tags {
+		model.Labels = append(model.Labels, tag.Name)
+	}
 
 	return model, nil
 }
@@ -41,9 +46,16 @@ func (a *CustomAdapter) ToNode(model *CustomModelWithAdatper) (*nod.Node, error)
 
 	node.Content = map[string]*nod.NodeContent{
 		"description": {
-			Key:    "description",
-			Value:  &model.Description,
+			Key:   "description",
+			Value: &model.Description,
 		},
+	}
+
+	node.Tags = []*nod.Tag{}
+	for _, label := range model.Labels {
+		node.Tags = append(node.Tags, &nod.Tag{
+			Name: label,
+		})
 	}
 
 	return node, nil
@@ -63,9 +75,10 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 	nod.RegisterNodeAdapter(repo.Adapters(), adapter)
 
 	original := &CustomModelWithAdatper{
-		Name:   "Test Model",
-		Active: true,
+		Name:        "Test Model",
+		Active:      true,
 		Description: "This is a test model with adapter.",
+		Labels:      []string{"label1", "label2"},
 	}
 
 	nodeScope := nod.Nodes[CustomModelWithAdatper](repo)
@@ -81,4 +94,5 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 	require.Equal(t, original.Name, retrievedModel.Name)
 	require.Equal(t, original.Active, retrievedModel.Active)
 	require.Equal(t, original.Description, retrievedModel.Description)
+	require.ElementsMatch(t, original.Labels, retrievedModel.Labels)
 }

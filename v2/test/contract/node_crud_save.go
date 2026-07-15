@@ -75,7 +75,6 @@ func testBasicNodeSave(t *testing.T, factory RepositoryFactory) {
 	require.NoError(t, err)
 }
 
-
 func testFullNodeSave(t *testing.T, factory RepositoryFactory) {
 	repo := factory(t)
 	defer repo.Close()
@@ -89,10 +88,10 @@ func testFullNodeSave(t *testing.T, factory RepositoryFactory) {
 			Status:      "active",
 			NamespaceId: nod.Ptr("namespace"),
 		},
-		// Tags: []*nod.Tag{
-		// 	{Name: "tag1"},
-		// 	{Name: "tag2"},
-		// },
+		Tags: []*nod.Tag{
+			{Name: "tag1"},
+			{Name: "tag2"},
+		},
 		// KV: map[string]*nod.NodeKV{
 		// 	"key1": {Key: "key1", Value: "value1"},
 		// 	"key2": {Key: "key2", Value: "value2"},
@@ -116,11 +115,11 @@ func testFullNodeSave(t *testing.T, factory RepositoryFactory) {
 	require.NoError(t, err)
 
 	// Check tags
-	// require.Len(t, savedNode.Tags, 2)
-	// tagNames := []string{savedNode.Tags[0].Name, savedNode.Tags[1].Name}
-	// require.Contains(t, tagNames, "tag1")
-	// require.Contains(t, tagNames, "tag2")
-	//
+	require.Len(t, savedNode.Tags, 2)
+	tagNames := []string{savedNode.Tags[0].Name, savedNode.Tags[1].Name}
+	require.Contains(t, tagNames, "tag1")
+	require.Contains(t, tagNames, "tag2")
+
 	// Check key-value attributes
 	// require.Len(t, savedNode.KV, 2)
 	// require.Equal(t, "value1", *savedNode.KV["key1"].ValueText)

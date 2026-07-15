@@ -5,8 +5,8 @@ import "time"
 // Tag represents a label that can be attached to one or more nodes.
 type Tag struct {
 	Id          string    `gorm:"type:varchar(36);primaryKey"`
-	NamespaceId *string   `gorm:"type:varchar(36);index:idx_tags_namespace_id,priority:1;index"`
-	Name        string    `gorm:"type:text;not null;index"`
+	NamespaceId *string   `gorm:"type:varchar(36);index:idx_tags_namespace_id,priority:1;index;uniqueIndex:idx_tags_namespace_id_name,priority:1"`
+	Name        string    `gorm:"type:text;not null;index;uniqueIndex:idx_tags_namespace_id_name,priority:2"`
 	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
 }
 
