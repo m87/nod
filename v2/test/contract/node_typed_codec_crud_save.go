@@ -10,10 +10,11 @@ import (
 type CustomModelWithNodeCodec struct {
 	Name   string
 	Active bool
+	Description string
 }
 
 func (m *CustomModelWithNodeCodec) ToNode() (*nod.Node, error) {
-	return &nod.Node{
+	node := &nod.Node{
 		Core: nod.NodeCore{
 			Name: m.Name,
 			Status: func() string {
@@ -23,12 +24,22 @@ func (m *CustomModelWithNodeCodec) ToNode() (*nod.Node, error) {
 				return "inactive"
 			}(),
 		},
-	}, nil
+	}
+
+	node.Content = map[string]*nod.NodeContent{
+		"description": {
+			Key:    "description",
+			Value:  &m.Description,
+		},
+	}
+
+	return node, nil
 }
 
 func (m *CustomModelWithNodeCodec) FromNode(node *nod.Node) error {
 	m.Name = node.Core.Name
 	m.Active = node.Core.Status == "active"
+	m.Description = *node.Content["description"].Value
 	return nil
 }
 
@@ -45,6 +56,7 @@ func testCodecSave(t *testing.T, factory RepositoryFactory) {
 	original := &CustomModelWithNodeCodec{
 		Name:   "Test Model",
 		Active: true,
+		Description: "This is a test model with NodeCodec.",
 	}
 
 	nodeScope := nod.Nodes[CustomModelWithNodeCodec](repo)
@@ -59,4 +71,5 @@ func testCodecSave(t *testing.T, factory RepositoryFactory) {
 	require.NotNil(t, retrievedModel)
 	require.Equal(t, original.Name, retrievedModel.Name)
 	require.Equal(t, original.Active, retrievedModel.Active)
+	require.Equal(t, original.Description, retrievedModel.Description)
 }

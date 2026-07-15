@@ -10,3 +10,15 @@ func (e *NodeIsNilError) Error() string {
 func NewNodeIsNilError() *NodeIsNilError {
 	return &NodeIsNilError{}
 }
+
+type CodecIsNilError struct {
+	modelType string
+}
+
+func (e *CodecIsNilError) Error() string {
+	return "codec is nil " + e.modelType
+}
+
+func NewCodecIsNilError(modelType string) *CodecIsNilError {
+	return &CodecIsNilError{modelType: modelType}
+}

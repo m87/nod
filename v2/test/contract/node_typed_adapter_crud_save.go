@@ -10,19 +10,24 @@ import (
 type CustomModelWithAdatper struct {
 	Name   string
 	Active bool
+	Description string
 }
 
 type CustomAdapter struct{}
 
 func (a *CustomAdapter) FromNode(node *nod.Node) (*CustomModelWithAdatper, error) {
-	return &CustomModelWithAdatper{
+	model := &CustomModelWithAdatper{
 		Name:   node.Core.Name,
 		Active: node.Core.Status == "active",
-	}, nil
+	}
+
+	model.Description = *node.Content["description"].Value
+
+	return model, nil
 }
 
 func (a *CustomAdapter) ToNode(model *CustomModelWithAdatper) (*nod.Node, error) {
-	return &nod.Node{
+	node := &nod.Node{
 		Core: nod.NodeCore{
 			Name: model.Name,
 			Status: func() string {
@@ -32,7 +37,16 @@ func (a *CustomAdapter) ToNode(model *CustomModelWithAdatper) (*nod.Node, error)
 				return "inactive"
 			}(),
 		},
-	}, nil
+	}
+
+	node.Content = map[string]*nod.NodeContent{
+		"description": {
+			Key:    "description",
+			Value:  &model.Description,
+		},
+	}
+
+	return node, nil
 }
 
 func (a *CustomAdapter) IsApplicable(node *nod.Node) bool {
@@ -51,6 +65,7 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 	original := &CustomModelWithAdatper{
 		Name:   "Test Model",
 		Active: true,
+		Description: "This is a test model with adapter.",
 	}
 
 	nodeScope := nod.Nodes[CustomModelWithAdatper](repo)
@@ -65,4 +80,5 @@ func testAdapterSave(t *testing.T, factory RepositoryFactory) {
 	require.NotNil(t, retrievedModel)
 	require.Equal(t, original.Name, retrievedModel.Name)
 	require.Equal(t, original.Active, retrievedModel.Active)
+	require.Equal(t, original.Description, retrievedModel.Description)
 }

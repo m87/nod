@@ -42,6 +42,21 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 			return err
 		}
 
+		if err := deleteNodeContents(tx, node.Core.Id); err != nil {
+			return err
+		}
+
+		content := []*NodeContent{}
+
+		for _, value := range node.Content {
+			value.NodeId = id
+			content = append(content, value)
+		}
+
+		if err := saveNodeContents(tx, content); err != nil {
+			return err
+		}
+
 		return nil
 	})
 
@@ -69,6 +84,14 @@ func (scope *NodeScope[T]) GetNode(id string) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	content, err := scope.repository.getNodeContents(id)
+
+	contentMap := make(map[string]*NodeContent)
+	for _, c := range content {
+		contentMap[c.Key] = c
+	}
+	node.Content = contentMap
 
 	return modelFromNode[T](scope.repository.adapters, node)
 }

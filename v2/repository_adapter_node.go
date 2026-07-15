@@ -79,12 +79,15 @@ func modelFromNode[T any](registry *AdapterRegistry, node *Node) (*T, error) {
 	}
 
 	if codec, ok := any(new(T)).(NodeCodec); ok {
-		err := codec.FromNode(node)
-		if err != nil {
-			return nil, err
+		if codec == nil {
+			return nil, NewCodecIsNilError(modelTypeName[T]())
 		}
 		if !codec.IsApplicable(node) {
 			return nil, NewCodecNotApplicableError(modelTypeName[T](), node.Core.Id)
+		}
+		err := codec.FromNode(node)
+		if err != nil {
+			return nil, err
 		}
 		typed, ok := any(codec).(*T)
 		if !ok {
