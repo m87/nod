@@ -30,7 +30,7 @@ func (scope *EdgeScope[T]) SaveEdge(model *T) (string, error) {
 		return "", NewEdgeIsNilError()
 	}
 
-	edge, err := edgeFromModel(scope.repository.mappers, model)
+	edge, err := edgeFromModel(scope.repository.adapters, model)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +48,7 @@ func (scope *EdgeScope[T]) DeleteEdge(model *T) error {
 		return NewEdgeIsNilError()
 	}
 
-	edge, err := edgeFromModel(scope.repository.mappers, model)
+	edge, err := edgeFromModel(scope.repository.adapters, model)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (scope *EdgeScope[T]) GetEdge(id string) (*T, error) {
 	if err := scope.repository.db.First(&edge.Core, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-	return modelFromEdge[T](scope.repository.mappers, edge)
+	return modelFromEdge[T](scope.repository.adapters, edge)
 }
 
 func ensureEdgeID(edge *Edge) string {

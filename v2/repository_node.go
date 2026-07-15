@@ -30,7 +30,7 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 		return "", NewNodeIsNilError()
 	}
 
-	node, err := nodeFromModel(scope.repository.mappers, model)
+	node, err := nodeFromModel(scope.repository.adapters, model)
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (scope *NodeScope[T]) DeleteNode(model *T) error {
 		return NewNodeIsNilError()
 	}
 
-	node, err := nodeFromModel(scope.repository.mappers, model)
+	node, err := nodeFromModel(scope.repository.adapters, model)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (scope *NodeScope[T]) GetNode(id string) (*T, error) {
 		return nil, err
 	}
 
-	return modelFromNode[T](scope.repository.mappers, node)
+	return modelFromNode[T](scope.repository.adapters, node)
 }
 
 func ensureNodeID(node *Node) string {

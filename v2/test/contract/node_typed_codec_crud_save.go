@@ -12,7 +12,7 @@ type CustomModelWithNodeCodec struct {
 	Active bool
 }
 
-func (m *CustomModelWithNodeCodec) ToNode() *nod.Node {
+func (m *CustomModelWithNodeCodec) ToNode() (*nod.Node, error) {
 	return &nod.Node{
 		Core: nod.NodeCore{
 			Name: m.Name,
@@ -23,7 +23,7 @@ func (m *CustomModelWithNodeCodec) ToNode() *nod.Node {
 				return "inactive"
 			}(),
 		},
-	}
+	}, nil
 }
 
 func (m *CustomModelWithNodeCodec) FromNode(node *nod.Node) error {

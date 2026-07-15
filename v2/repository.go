@@ -9,7 +9,7 @@ import (
 type Repository struct {
 	db      *gorm.DB
 	log     *slog.Logger
-	mappers *AdapterRegistry
+	adapters *AdapterRegistry
 }
 
 func NewRepository(db *gorm.DB, log *slog.Logger, mappers *AdapterRegistry) *Repository {
@@ -19,7 +19,7 @@ func NewRepository(db *gorm.DB, log *slog.Logger, mappers *AdapterRegistry) *Rep
 	return &Repository{
 		db:      db,
 		log:     log,
-		mappers: mappers,
+		adapters: mappers,
 	}
 }
 
@@ -29,8 +29,8 @@ func (r *Repository) DB() *gorm.DB { return r.db }
 // Log returns the repository's logger.
 func (r *Repository) Log() *slog.Logger { return r.log }
 
-// Mappers returns the mapper registry used by this repository.
-func (r *Repository) Mappers() *AdapterRegistry { return r.mappers }
+// Adapters returns the repository's adapter registry.
+func (r *Repository) Adapters() *AdapterRegistry { return r.adapters }
 
 func (r *Repository) Close() error {
 	sqlDB, err := r.db.DB()
