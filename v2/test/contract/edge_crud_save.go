@@ -19,7 +19,12 @@ func testBasicEdgeSave(t *testing.T, factory RepositoryFactory) {
 		Name:     "ingredient",
 		Kind:     "contains",
 		Status:   "active",
-	}})
+	},
+		KV: map[string]*nod.EdgeKV{
+			"quantity": {Key: "quantity", ValueText: nod.Ptr("2")},
+			"unit":     {Key: "unit", ValueText: nod.Ptr("cups")},
+		},
+	})
 	require.NoError(t, err)
 	require.NoError(t, uuid.Validate(id))
 
@@ -32,4 +37,6 @@ func testBasicEdgeSave(t *testing.T, factory RepositoryFactory) {
 	require.Equal(t, "active", edge.Core.Status)
 	require.False(t, edge.Core.CreatedAt.IsZero())
 	require.False(t, edge.Core.UpdatedAt.IsZero())
+	require.Equal(t, "2", *edge.KV["quantity"].ValueText)
+	require.Equal(t, "cups", *edge.KV["unit"].ValueText)
 }

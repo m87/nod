@@ -37,7 +37,24 @@ func (scope *EdgeScope[T]) SaveEdge(model *T) (string, error) {
 
 	id := ensureEdgeID(edge)
 	err = scope.repository.db.Transaction(func(tx *gorm.DB) error {
-		return tx.Save(&edge.Core).Error
+		err := tx.Save(&edge.Core).Error
+		if err != nil {
+			return err
+		}
+		if err := deleteEdgeKvs(tx, id); err != nil {
+			return err
+		}
+
+		kvs := []*EdgeKV{}
+		for _, value := range edge.KV {
+			value.EdgeId = id
+			kvs = append(kvs, value)
+		}
+
+		if err := saveEdgeKvs(tx, kvs); err != nil {
+			return err
+		}
+		return nil
 	})
 	return id, err
 }
@@ -62,6 +79,17 @@ func (scope *EdgeScope[T]) GetEdge(id string) (*T, error) {
 	if err := scope.repository.db.First(&edge.Core, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
+
+	kvs, err := scope.repository.getEdgeKvs(id)
+	if err != nil {
+		return nil, err
+	}
+	kvsMap := make(map[string]*EdgeKV)
+	for _, kv := range kvs {
+		kvsMap[kv.Key] = kv
+	}
+	edge.KV = kvsMap
+
 	return modelFromEdge[T](scope.repository.adapters, edge)
 }
 
