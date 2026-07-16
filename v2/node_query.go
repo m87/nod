@@ -1,5 +1,7 @@
 package nod
 
+import "gorm.io/gorm"
+
 // NodeQuery represents a query for nodes in the repository, allowing for filtering based on various criteria.
 type NodeQuery struct {
 	repository *Repository
@@ -7,14 +9,7 @@ type NodeQuery struct {
 	nodeIds      []string
 	parentIds    []string
 	namespaceIds []string
-	name         *StringFilter
-	status       *StringFilter
-	kind         *StringFilter
-	createdDate  *TimeFilter
-	updatedDate  *TimeFilter
-	limit        int
-	page         int
-	pageSize     int
+	nameFilters []*Filter[string]
 }
 
 // NewNodeQuery creates a new NodeQuery for the given repository.
@@ -24,90 +19,142 @@ func NewNodeQuery(repository *Repository) *NodeQuery {
 	}
 }
 
-// Clone creates a copy of the NodeQuery, allowing for modifications without affecting the original query.
-func (q *NodeQuery) Clone() *NodeQuery {
-	return &NodeQuery{
-		repository:   q.repository,
-		nodeIds:      append([]string{}, q.nodeIds...),
-		parentIds:    append([]string{}, q.parentIds...),
-		namespaceIds: append([]string{}, q.namespaceIds...),
-		name:         q.name,
-		status:       q.status,
-		kind:         q.kind,
-		createdDate:  q.createdDate,
-		updatedDate:  q.updatedDate,
-		limit:        q.limit,
-		page:         q.page,
-		pageSize:     q.pageSize,
+// FindAll retrieves all nodes matching the query criteria, with pagination support.
+func (query *NodeQuery) FindAll(page int, pageSize int) ([]*Node, error) {
+	db := query.repository.db.Model(&NodeCore{})
+	db = query.applyCoreFitlers(db)
+
+	var nodeCores []NodeCore
+	result := db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&nodeCores)
+	if result.Error != nil {
+		return nil, result.Error
 	}
+
+	nodes := make([]*Node, len(nodeCores))
+	for i, nodeCore := range nodeCores {
+		nodes[i] = &Node{
+			Core: nodeCore,
+		}
+	}
+	return nodes, nil
 }
 
-func (q *NodeQuery) NodeIds(ids ...string) *NodeQuery {
-	q.nodeIds = append(q.nodeIds, ids...)
-	return q
+// FindOne retrieves a single node matching the query criteria. If multiple nodes match, it returns error.
+func (query *NodeQuery) FindOne() (*Node, error) {
+	db := query.repository.db.Model(&NodeCore{})
+	db = query.applyCoreFitlers(db)
+
+	var nodeCore NodeCore
+	result := db.First(&nodeCore)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	node := &Node{
+		Core: nodeCore,
+	}
+	return node, nil
 }
 
-func (q *NodeQuery) NodeId(id string) *NodeQuery {
-	q.nodeIds = append(q.nodeIds, id)
-	return q
+// Count returns the total number of nodes matching the query criteria.
+func (query *NodeQuery) Count() (int64, error) {
+	db := query.repository.db.Model(&NodeCore{})
+	db = query.applyCoreFitlers(db)
+
+	var count int64
+	result := db.Count(&count)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return count, nil
 }
 
-func (q *NodeQuery) ParentIds(ids ...string) *NodeQuery {
-	q.parentIds = append(q.parentIds, ids...)
-	return q
+// Edges retrieves all edges connected to the nodes matching the query criteria.
+func (query *NodeQuery) Edges() ([]*Edge, error) {
+	return nil, nil
 }
 
-func (q *NodeQuery) ParentId(id string) *NodeQuery {
-	q.parentIds = append(q.parentIds, id)
-	return q
+// OutEdges retrieves all outgoing edges from the nodes matching the query criteria.
+func (query *NodeQuery) OutEdges() ([]*Edge, error) {
+	return nil, nil
 }
 
-func (q *NodeQuery) NamespaceIds(ids ...string) *NodeQuery {
-	q.namespaceIds = append(q.namespaceIds, ids...)
-	return q
+// InEdges retrieves all incoming edges to the nodes matching the query criteria.
+func (query *NodeQuery) InEdges() ([]*Edge, error) {
+	return nil, nil
 }
 
-func (q *NodeQuery) NamespaceId(id string) *NodeQuery {
-	q.namespaceIds = append(q.namespaceIds, id)
-	return q
+// NodeIds adds multiple node IDs to the query for filtering.
+func (query *NodeQuery) NodeIds(nodeIds []string) *NodeQuery {
+	query.nodeIds = append(query.nodeIds, nodeIds...)
+	return query
 }
 
-func (q *NodeQuery) Name(filter *StringFilter) *NodeQuery {
-	q.name = filter
-	return q
+// NodeId adds a single node ID to the query for filtering.
+func (query *NodeQuery) NodeId(nodeId string) *NodeQuery {
+	query.nodeIds = append(query.nodeIds, nodeId)
+	return query
 }
 
-func (q *NodeQuery) Status(filter *StringFilter) *NodeQuery {
-	q.status = filter
-	return q
+// ParentIds adds multiple parent IDs to the query for filtering.
+func (query *NodeQuery) ParentIds(parentIds []string) *NodeQuery {
+	query.parentIds = append(query.parentIds, parentIds...)
+	return query
 }
 
-func (q *NodeQuery) Kind(filter *StringFilter) *NodeQuery {
-	q.kind = filter
-	return q
+// ParentId adds a single parent ID to the query for filtering.
+func (query *NodeQuery) ParentId(parentId string) *NodeQuery {
+	query.parentIds = append(query.parentIds, parentId)
+	return query
 }
 
-func (q *NodeQuery) CreatedDate(filter *TimeFilter) *NodeQuery {
-	q.createdDate = filter
-	return q
+// NamespaceIds adds multiple namespace IDs to the query for filtering.
+func (query *NodeQuery) NamespaceIds(namespaceIds []string) *NodeQuery {
+	query.namespaceIds = append(query.namespaceIds, namespaceIds...)
+	return query
 }
 
-func (q *NodeQuery) UpdatedDate(filter *TimeFilter) *NodeQuery {
-	q.updatedDate = filter
-	return q
+// NamespaceId adds a single namespace ID to the query for filtering.
+func (query *NodeQuery) NamespaceId(namespaceId string) *NodeQuery {
+	query.namespaceIds = append(query.namespaceIds, namespaceId)
+	return query
 }
 
-func (q *NodeQuery) Limit(limit int) *NodeQuery {
-	q.limit = limit
-	return q
+// NameFilter adds a name filter to the query for filtering nodes based on their names.
+func (query *NodeQuery) NameFilter(filter *Filter[string]) *NodeQuery {
+	query.nameFilters = append(query.nameFilters, filter)
+	return query
 }
 
-func (q *NodeQuery) Page(page int) *NodeQuery {
-	q.page = page
-	return q
+// NameFilters adds multiple name filters to the query for filtering nodes based on their names.
+func (query *NodeQuery) NameFilters(filters []*Filter[string]) *NodeQuery {
+	query.nameFilters = append(query.nameFilters, filters...)
+	return query
 }
 
-func (q *NodeQuery) PageSize(pageSize int) *NodeQuery {
-	q.pageSize = pageSize
-	return q
+// Name adds a name filter to the query for filtering nodes based on their names, using an equality comparison.
+func (query *NodeQuery) Name(value string) *NodeQuery {
+	query.nameFilters = append(query.nameFilters, Equals(value))
+	return query
 }
+
+func (query *NodeQuery) applyCoreFitlers(db *gorm.DB) *gorm.DB {
+	if len(query.nodeIds) > 0 {
+		db = db.Where("id IN ?", query.nodeIds)
+	}
+	if len(query.parentIds) > 0 {
+		db = db.Where("parent_id IN ?", query.parentIds)
+	}
+	if len(query.namespaceIds) > 0 {
+		db = db.Where("namespace_id IN ?", query.namespaceIds)
+	}
+	if len(query.nameFilters) > 0 {
+		for _, filter := range query.nameFilters {
+			applyStringFilter(db, "name", filter)
+		}
+	}
+	return db
+}
+
+
+

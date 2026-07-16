@@ -1,70 +1,109 @@
 package nod
 
-import "time"
+import (
+	"reflect"
 
-// TimeFilter specifies a time range for filtering queries.
-type TimeFilter struct {
-	From *time.Time
-	To   *time.Time
+	"gorm.io/gorm"
+)
+
+// Operator defines the type of comparison to be used in filtering.
+type Operator string
+
+const (
+	OperatorEquals     Operator = "equals"
+	OperatorLike       Operator = "like"
+	OperatorPrefix     Operator = "prefix"
+	OperatorSuffix     Operator = "suffix"
+	OperatorGreaterThan Operator = "greater_than"
+	OperatorLessThan    Operator = "less_than"
+)
+
+// Filter represents a generic filter with a value, operator, and type information.
+type Filter[T comparable] struct {
+	Value    T
+	Operator Operator
+	Type		 string
 }
 
-// StringFilter specifies string matching criteria for filtering queries.
-type StringFilter struct {
-	Equals     *string
-	Contains   *string
-	StartsWith *string
-	EndsWith   *string
+// Equals creates a Filter that checks for equality with the specified value.
+func Equals[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorEquals, Type: reflect.TypeOf(value).String()}
 }
 
-// StringEquals creates a StringFilter matching an exact value.
-func StringEquals(value string) *StringFilter {
-	return &StringFilter{Equals: &value}
+// Like creates a Filter that checks if the value is like the specified value (e.g., for string matching).
+func Like[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorLike, Type: reflect.TypeOf(value).String()}
 }
 
-// StringContains creates a StringFilter matching a substring.
-func StringContains(value string) *StringFilter {
-	return &StringFilter{Contains: &value}
+// Prefix creates a Filter that checks if the value has the specified prefix.
+func Prefix[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorPrefix, Type: reflect.TypeOf(value).String()}
 }
 
-// StringStartsWith creates a StringFilter matching a prefix.
-func StringStartsWith(value string) *StringFilter {
-	return &StringFilter{StartsWith: &value}
+// Suffix creates a Filter that checks if the value has the specified suffix.
+func Suffix[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorSuffix, Type: reflect.TypeOf(value).String()}
 }
 
-// StringEndsWith creates a StringFilter matching a suffix.
-func StringEndsWith(value string) *StringFilter {
-	return &StringFilter{EndsWith: &value}
+// GreaterThan creates a Filter that checks if the value is greater than the specified value.
+func GreaterThan[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorGreaterThan, Type: reflect.TypeOf(value).String()}
 }
 
-// TimeFrom creates a TimeFilter with a starting time.
-func TimeFrom(value time.Time) *TimeFilter {
-	return &TimeFilter{From: &value}
+// LessThan creates a Filter that checks if the value is less than the specified value.
+func LessThan[T comparable](value T) *Filter[T] {
+	return &Filter[T]{Value: value, Operator: OperatorLessThan, Type: reflect.TypeOf(value).String()}
 }
 
-// TimeTo creates a TimeFilter with an ending time.
-func TimeTo(value time.Time) *TimeFilter {
-	return &TimeFilter{To: &value}
+// Gt is a shorthand for GreaterThan, creating a Filter that checks if the value is greater than the specified value.
+func Gt[T comparable](value T) *Filter[T] {
+	return GreaterThan(value)
 }
 
-// TimeBetween creates a TimeFilter with a range between two times.
-func TimeBetween(from, to time.Time) *TimeFilter {
-	return &TimeFilter{From: &from, To: &to}
+// Lt is a shorthand for LessThan, creating a Filter that checks if the value is less than the specified value.
+func Lt[T comparable](value T) *Filter[T] {
+	return LessThan(value)
 }
 
-// NewStringFilter creates a new StringFilter with the specified criteria.
-func NewStringFilter(equals, contains, startsWith, endsWith *string) *StringFilter {
-	return &StringFilter{
-		Equals:     equals,
-		Contains:   contains,
-		StartsWith: startsWith,
-		EndsWith:   endsWith,
+// Eq is a shorthand for Equals, creating a Filter that checks for equality with the specified value.
+func Eq[T comparable](value T) *Filter[T] {
+	return Equals(value)
+}
+
+func Between[T comparable](min, max T) []*Filter[T] {
+	return []*Filter[T]{
+		{Value: min, Operator: OperatorGreaterThan, Type: reflect.TypeOf(min).String()},
+		{Value: max, Operator: OperatorLessThan, Type: reflect.TypeOf(max).String()},
 	}
 }
 
-// NewTimeFilter creates a new TimeFilter with the specified range.
-func NewTimeFilter(from, to *time.Time) *TimeFilter {
-	return &TimeFilter{
-		From: from,
-		To:   to,
+// escapeLike escapes special characters in a string for use in a SQL LIKE clause.
+func escapeLike(s string) string {
+	r := ""
+	for _, c := range s {
+		if c == '%' || c == '_' || c == '\\' {
+			r += "\\"
+		}
+		r += string(c)
 	}
+	return r
 }
+
+// applyStringFilter applies a string filter to the specified column in the GORM database query.
+func applyStringFilter(db *gorm.DB, column string, filter *Filter[string]) *gorm.DB {
+	switch filter.Operator {
+	case OperatorEquals:
+		db = db.Where(column+" = ?", filter.Value)
+	case OperatorLike:
+		db = db.Where(column+" LIKE ?", "%"+escapeLike(filter.Value)+"%")
+	case OperatorPrefix:
+		db = db.Where(column+" LIKE ?", escapeLike(filter.Value)+"%")
+	case OperatorSuffix:
+		db = db.Where(column+" LIKE ?", "%"+escapeLike(filter.Value))
+	case OperatorGreaterThan:
+		db = db.Where(column+" > ?", filter.Value)
+	case OperatorLessThan:
+		db = db.Where(column+" < ?", filter.Value)
+	}
+	return db
+}	

@@ -22,3 +22,14 @@ func (e *CodecIsNilError) Error() string {
 func NewCodecIsNilError(modelType string) *CodecIsNilError {
 	return &CodecIsNilError{modelType: modelType}
 }
+
+type MultipleNodesFoundError struct {
+}
+
+func (e *MultipleNodesFoundError) Error() string {
+	return "multiple nodes found"
+}
+
+func NewMultipleNodesFoundError() *MultipleNodesFoundError {
+	return &MultipleNodesFoundError{}
+}
