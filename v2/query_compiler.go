@@ -97,6 +97,18 @@ func (c queryCompiler) compileComparison(expr *comparisionExpression) (clause.Ex
 		return clause.Gte{Column: fieldName, Value: value}, nil
 	case OperatorLessThanOrEqual:
 		return clause.Lte{Column: fieldName, Value: value}, nil
+	case OperatorIn:
+		values, ok := value.([]any)
+		if !ok {
+			return nil, fmt.Errorf("value for IN operator must be a slice of any, got %T", value)
+		}
+		return clause.IN{Column: fieldName, Values: values}, nil
+	case OperatorNotIn:
+		values, ok := value.([]any)
+		if !ok {
+			return nil, fmt.Errorf("value for NOT IN operator must be a slice of any, got %T", value)
+		}
+		return clause.Not(clause.IN{Column: fieldName, Values: values}), nil
 	default:
 		return nil, fmt.Errorf("unsupported operator: %v", expr.Operator)
 	}

@@ -39,6 +39,8 @@ const (
 	OperatorLessThan
 	OperatorGreaterThanOrEqual
 	OperatorLessThanOrEqual
+	OperatorIn
+	OperatorNotIn
 )
 
 type comparisionExpression struct {
@@ -63,6 +65,10 @@ type StringField struct {
 	ref FieldRef
 }
 
+type StringListField struct {
+	ref FieldRef
+}
+
 func coreStringField(name string) StringField  {
 	return StringField{
 		ref: FieldRef{
@@ -73,10 +79,30 @@ func coreStringField(name string) StringField  {
 	}	
 }
 
+func valuesToAny[T any](values []T) []any {
+    result := make([]any, len(values))
+
+    for i, value := range values {
+        result[i] = value
+    }
+
+    return result
+}
+
+
 var CoreFields = struct {
 	Name StringField
+	NamespaceId StringField
+	ParentId StringField
+	Status StringField
+	Kind StringField
+
 }{
 	Name: coreStringField("name"),
+	NamespaceId: coreStringField("namespace_id"),
+	ParentId: coreStringField("parent_id"),
+	Status: coreStringField("status"),
+	Kind: coreStringField("kind"),
 }
 
 func (f StringField) Equals(value string) Expression {
@@ -84,5 +110,21 @@ func (f StringField) Equals(value string) Expression {
 		Field: f.ref,
 		Operator: OperatorEqual,
 		Value: value,
+	}
+}
+
+func (f StringField) In(value []string) Expression {
+	return &comparisionExpression{
+		Field: f.ref,
+		Operator: OperatorIn,
+		Value: valuesToAny(value),
+	}
+}
+
+func (f StringField) NotIn(value []string) Expression {
+	return &comparisionExpression{
+		Field: f.ref,
+		Operator: OperatorNotIn,
+		Value: valuesToAny(value),
 	}
 }
