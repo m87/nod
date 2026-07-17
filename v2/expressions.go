@@ -79,6 +79,55 @@ func coreStringField(name string) StringField  {
 	}	
 }
 
+func kvString(name string) StringField  {
+	return StringField{
+		ref: FieldRef{
+			Source: SourceKV,
+			Type: ValueTypeString,
+			Name: name,
+		},
+	}	
+}
+
+func kvInt(name string) StringField  {
+	return StringField{
+		ref: FieldRef{
+			Source: SourceKV,
+			Type: ValueTypeInt,
+			Name: name,
+		},
+	}	
+}
+
+func content(name string) StringField  {
+	return StringField{
+		ref: FieldRef{
+			Source: SourceContent,
+			Type: ValueTypeString,
+			Name: name,
+		},
+	}	
+}
+
+
+type TagsField struct {}
+
+func Tags() TagsField {
+	return TagsField{}
+}
+
+func (f TagsField) Has(tagName string) Expression {
+	return &comparisionExpression{
+		Field: FieldRef{
+			Source: SourceTag,
+			Type: ValueTypeString,
+			Name: tagName,
+		},
+		Operator: OperatorEqual,
+		Value: true,
+	}
+}
+
 func valuesToAny[T any](values []T) []any {
     result := make([]any, len(values))
 
@@ -90,7 +139,9 @@ func valuesToAny[T any](values []T) []any {
 }
 
 
+
 var CoreFields = struct {
+	Id StringField
 	Name StringField
 	NamespaceId StringField
 	ParentId StringField
@@ -98,11 +149,32 @@ var CoreFields = struct {
 	Kind StringField
 
 }{
+	Id: coreStringField("id"),
 	Name: coreStringField("name"),
 	NamespaceId: coreStringField("namespace_id"),
 	ParentId: coreStringField("parent_id"),
 	Status: coreStringField("status"),
 	Kind: coreStringField("kind"),
+}
+
+func KvString(name string) StringField {
+	return StringField{
+		ref: FieldRef{
+			Source: SourceKV,
+			Type: ValueTypeString,
+			Name: name,
+		},
+	}
+}
+
+func Content(name string) StringField {
+	return StringField{
+		ref: FieldRef{
+			Source: SourceContent,
+			Type: ValueTypeString,
+			Name: name,
+		},
+	}
 }
 
 func (f StringField) Equals(value string) Expression {
@@ -128,3 +200,5 @@ func (f StringField) NotIn(value []string) Expression {
 		Value: valuesToAny(value),
 	}
 }
+
+

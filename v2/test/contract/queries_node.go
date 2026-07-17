@@ -18,6 +18,10 @@ func createTestNodes(t *testing.T, repo *nod.Repository) {
 			Kind:   "test1",
 			Status: "active",
 		},
+		KV: map[string]*nod.NodeKV{
+			"key1": {Key: "key1", ValueText: nod.Ptr("value1")},
+			"key2": {Key: "key2", ValueText: nod.Ptr("value2")},
+		},
 	})
 
 	repo.Nodes().SaveNode(&nod.Node{
@@ -25,6 +29,10 @@ func createTestNodes(t *testing.T, repo *nod.Repository) {
 			Name:   "node2",
 			Kind:   "test1",
 			Status: "active",
+		},
+		KV: map[string]*nod.NodeKV{
+			"key1": {Key: "key1", ValueText: nod.Ptr("value1")},
+			"key2": {Key: "key2", ValueText: nod.Ptr("value4")},
 		},
 	})
 
@@ -34,7 +42,53 @@ func createTestNodes(t *testing.T, repo *nod.Repository) {
 			Kind:   "test3",
 			Status: "active",
 		},
+		KV: map[string]*nod.NodeKV{
+			"key1": {Key: "key1", ValueText: nod.Ptr("value1")},
+			"key2": {Key: "key2", ValueText: nod.Ptr("value3")},
+		},
 	})
+}
+
+func testFindByCoreAndKv(t *testing.T, factory RepositoryFactory) {
+	t.Helper()
+
+	repo := factory(t)
+	defer repo.Close()
+
+	createTestNodes(t, repo)
+
+	query := nod.NewNodeQuery(repo)
+
+	nodes, err := query.Where(
+		nod.And(
+			nod.CoreFields.Kind.Equals("test1"),
+			nod.KvString("key1").Equals("value1"),
+		),
+	).FindAll()
+	require.NoError(t, err)
+	require.Len(t, nodes, 2)
+}
+
+func testFindByKv(t *testing.T, factory RepositoryFactory) {
+	t.Helper()
+
+	repo := factory(t)
+	defer repo.Close()
+
+	createTestNodes(t, repo)
+
+	query := nod.NewNodeQuery(repo)
+
+	nodes, err := query.Where(
+		nod.And(
+			nod.KvString("key2").Equals("value4"),
+		),
+	).FindAll()
+	require.NoError(t, err)
+	require.Len(t, nodes, 1)
+	require.Equal(t, "node2", nodes[0].Core.Name)
+	require.Equal(t, "test1", nodes[0].Core.Kind)
+	require.Equal(t, "active", nodes[0].Core.Status)
 }
 
 
