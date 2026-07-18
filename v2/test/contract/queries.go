@@ -13,4 +13,5 @@ func testQueries(t *testing.T, factory RepositoryFactory) {
 	t.Run("MixedParameters", func(t *testing.T) { testQueryMixedParameters(t, factory) })
 	t.Run("LogicalOperators", func(t *testing.T) { testQueryLogicalOperators(t, factory) })
 	t.Run("MultipleWhere", func(t *testing.T) { testQueryMultipleWhere(t, factory) })
+	t.Run("LazyLoading", func(t *testing.T) { testQueryLazyLoading(t, factory) })
 }

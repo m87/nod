@@ -62,7 +62,7 @@ func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 		}
 
 		for _, tag := range node.Tags {
-			savedTag, err := saveNodeTagIfNotExists(tx, node.Core.NamespaceId, tag.Name)
+			savedTag, err := saveTagIfNotExists(tx, node.Core.NamespaceId, tag.Name)
 			if err != nil {
 				return err
 			}

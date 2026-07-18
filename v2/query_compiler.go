@@ -8,7 +8,7 @@ import (
 )
 
 type queryCompiler struct {
-	db *gorm.DB
+	db    *gorm.DB
 	scope Scope
 }
 
@@ -95,7 +95,7 @@ func (c queryCompiler) compileComparison(expr *comparisionExpression) (clause.Ex
 }
 
 func (c queryCompiler) compileCoreComparison(expr *comparisionExpression) (clause.Expression, error) {
-	column := clause.Column{Table: tablePrefix(c.scope) + "cores", Name: expr.Field.Name}
+	column := clause.Column{Table: scopePrefix(c.scope) + "cores", Name: expr.Field.Name}
 	return compileScalarComparison(column, expr.Operator, expr.Value)
 }
 
@@ -116,28 +116,35 @@ func (c queryCompiler) compileKVComparison(expr *comparisionExpression) (clause.
 		return nil, err
 	}
 
-	prefix := tablePrefix(c.scope)
+	prefix := scopePrefix(c.scope)
+	id := prefix + "id"
 
 	column := clause.Column{Table: prefix + "kvs", Name: columnName}
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Value)
 	if err != nil {
 		return nil, err
 	}
-	subquery := c.db.Session(&gorm.Session{NewDB: true}).Table(prefix + "kvs").Select("1").Where(prefix+"kvs.node_id = "+ prefix + "cores.id").Where(prefix + "kvs.key = ?", expr.Field.Name).Where(scalarComperison)
+	subquery := c.db.Session(&gorm.Session{NewDB: true}).
+		Table(prefix+"kvs").
+		Select("1").
+		Where(prefix+"kvs."+id+" = "+prefix+"cores.id").
+		Where(prefix+"kvs.key = ?", expr.Field.Name).
+		Where(scalarComperison)
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
 }
 
 func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (clause.Expression, error) {
-	prefix := tablePrefix(c.scope)
+	prefix := scopePrefix(c.scope)
+	id := prefix + "id"
 	column := clause.Column{Table: prefix + "contents", Name: "value"}
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Value)
 	if err != nil {
 		return nil, err
 	}
 	subquery := c.db.Session(&gorm.Session{NewDB: true}).
-		Table(prefix + "contents").
+		Table(prefix+"contents").
 		Select("1").
-		Where(prefix + "contents.node_id = "+prefix+"cores.id").
+		Where(prefix+"contents."+id+" = "+prefix+"cores.id").
 		Where(prefix+"contents.key = ?", expr.Field.Name).
 		Where(scalarComperison)
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
@@ -145,17 +152,18 @@ func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (cl
 
 func (c queryCompiler) compileTagComparison(expr *comparisionExpression) (clause.Expression, error) {
 	column := clause.Column{Table: "tags", Name: "name"}
-	prefix := tablePrefix(c.scope)
+	prefix := scopePrefix(c.scope)
+	id := prefix + "id"
 
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Field.Name)
 	if err != nil {
 		return nil, err
 	}
 	subquery := c.db.Session(&gorm.Session{NewDB: true}).
-		Table(prefix+"tags").
+		Table(prefix + "tags").
 		Select("1").
-		Joins("JOIN tags ON tags.id = "+prefix+"tags.tag_id").
-		Where(prefix +"tags.node_id = "+prefix+"cores.id").
+		Joins("JOIN tags ON tags.id = " + prefix + "tags.tag_id").
+		Where(prefix + "tags." + id + " = " + prefix + "cores.id").
 		Where(scalarComperison)
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
 
@@ -192,7 +200,7 @@ func compileScalarComparison(column clause.Column, operator Operator, value any)
 	}
 }
 
-func tablePrefix(scope Scope) string {
+func scopePrefix(scope Scope) string {
 	switch scope {
 	case ScopeNode:
 		return "node_"

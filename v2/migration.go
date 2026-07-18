@@ -75,6 +75,8 @@ func nodSchemaModels() []any {
 		&Property{},
 		&EdgeCore{},
 		&EdgeKV{},
+		&EdgeTag{},
+		&EdgeContent{},
 	}
 }
 

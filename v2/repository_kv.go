@@ -31,6 +31,34 @@ func (r *Repository) getNodeKvs(nodeId string) ([]*NodeKV, error) {
 	return kvs, nil
 }
 
+func (r *Repository) getNodesKvs(nodeIds []string) (map[string][]*NodeKV, error) {
+	var kvs []*NodeKV
+	err := r.db.Where("node_id IN ?", nodeIds).Find(&kvs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string][]*NodeKV)
+	for _, kv := range kvs {
+		result[kv.NodeId] = append(result[kv.NodeId], kv)
+	}
+	return result, nil
+}
+
+func (r *Repository) getEdgesKvs(edgeIds []string) (map[string][]*EdgeKV, error) {
+	var kvs []*EdgeKV
+	err := r.db.Where("edge_id IN ?", edgeIds).Find(&kvs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string][]*EdgeKV)
+	for _, kv := range kvs {
+		result[kv.EdgeId] = append(result[kv.EdgeId], kv)
+	}
+	return result, nil
+}
+
 func (r *Repository) getEdgeKvs(edgeId string) ([]*EdgeKV, error) {
 	var kvs []*EdgeKV
 	err := r.db.Where("edge_id = ?", edgeId).Find(&kvs).Error

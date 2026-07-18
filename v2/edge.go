@@ -3,8 +3,10 @@ package nod
 import "time"
 
 type Edge struct {
-	Core EdgeCore
-	KV   map[string]*EdgeKV
+	Core    EdgeCore
+	Tags    []*Tag
+	KV      map[string]*EdgeKV
+	Content map[string]*EdgeContent
 }
 
 // EdgeCore holds the core attributes of a directed edge between two nodes.

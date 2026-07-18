@@ -37,17 +37,49 @@ func (scope *EdgeScope[T]) SaveEdge(model *T) (string, error) {
 
 	id := ensureEdgeID(edge)
 	err = scope.repository.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Save(&edge.Core).Error
-		if err != nil {
+		if err := tx.Save(&edge.Core).Error; err != nil {
 			return err
 		}
+
+		if err := deleteEdgeContents(tx, id); err != nil {
+			return err
+		}
+		contents := make([]*EdgeContent, 0, len(edge.Content))
+		for _, value := range edge.Content {
+			if value != nil {
+				value.EdgeId = id
+			}
+			contents = append(contents, value)
+		}
+		if err := saveEdgeContents(tx, contents); err != nil {
+			return err
+		}
+
+		if err := unbindEdgeTagsFromEdge(tx, id); err != nil {
+			return err
+		}
+		for _, tag := range edge.Tags {
+			if tag == nil {
+				return NewTagIsNilError()
+			}
+			savedTag, err := saveTagIfNotExists(tx, edge.Core.NamespaceId, tag.Name)
+			if err != nil {
+				return err
+			}
+			if err := bindEdgeTagToEdge(tx, id, savedTag.Id); err != nil {
+				return err
+			}
+		}
+
 		if err := deleteEdgeKvs(tx, id); err != nil {
 			return err
 		}
 
-		kvs := []*EdgeKV{}
+		kvs := make([]*EdgeKV, 0, len(edge.KV))
 		for _, value := range edge.KV {
-			value.EdgeId = id
+			if value != nil {
+				value.EdgeId = id
+			}
 			kvs = append(kvs, value)
 		}
 
@@ -80,11 +112,27 @@ func (scope *EdgeScope[T]) GetEdge(id string) (*T, error) {
 		return nil, err
 	}
 
+	contents, err := scope.repository.getEdgeContents(id)
+	if err != nil {
+		return nil, err
+	}
+	contentMap := make(map[string]*EdgeContent, len(contents))
+	for _, content := range contents {
+		contentMap[content.Key] = content
+	}
+	edge.Content = contentMap
+
+	tags, err := scope.repository.getEdgeTags(id)
+	if err != nil {
+		return nil, err
+	}
+	edge.Tags = tags
+
 	kvs, err := scope.repository.getEdgeKvs(id)
 	if err != nil {
 		return nil, err
 	}
-	kvsMap := make(map[string]*EdgeKV)
+	kvsMap := make(map[string]*EdgeKV, len(kvs))
 	for _, kv := range kvs {
 		kvsMap[kv.Key] = kv
 	}

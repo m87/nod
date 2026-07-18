@@ -16,4 +16,5 @@ func RunRepositoryContractTests(t *testing.T, factory RepositoryFactory) {
 	t.Run("EdgeCrud", func(t *testing.T) { testEdgeCrud(t, factory) })
 	t.Run("EdgeTyped", func(t *testing.T) { testEdgeTyped(t, factory) })
 	t.Run("Query", func(t *testing.T) { testQueries(t, factory) })
+	t.Run("EdgeQuery", func(t *testing.T) { testEdgeQueries(t, factory) })
 }

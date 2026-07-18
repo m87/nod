@@ -29,6 +29,40 @@ func testDeleteEdge(t *testing.T, factory RepositoryFactory) {
 	require.Nil(t, edge)
 }
 
+func testDeleteEdgeRelatedData(t *testing.T, factory RepositoryFactory) {
+	repo := factory(t)
+	defer repo.Close()
+
+	sourceID, targetID := createEdgeEndpoints(t, repo)
+	edgeID, err := repo.Edges().SaveEdge(&nod.Edge{
+		Core: nod.EdgeCore{
+			SourceId: sourceID,
+			TargetId: targetID,
+			Name:     "ingredient",
+			Kind:     "contains",
+			Status:   "active",
+		},
+		Tags: []*nod.Tag{{Name: "required"}},
+		KV: map[string]*nod.EdgeKV{
+			"quantity": {Key: "quantity", ValueText: nod.Ptr("2")},
+		},
+		Content: map[string]*nod.EdgeContent{
+			"note": {Key: "note", Value: nod.Ptr("sifted")},
+		},
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, repo.Edges().DeleteEdge(&nod.Edge{Core: nod.EdgeCore{Id: edgeID}}))
+
+	var kvCount, contentCount, tagBindingCount int64
+	require.NoError(t, repo.DB().Model(&nod.EdgeKV{}).Where("edge_id = ?", edgeID).Count(&kvCount).Error)
+	require.NoError(t, repo.DB().Model(&nod.EdgeContent{}).Where("edge_id = ?", edgeID).Count(&contentCount).Error)
+	require.NoError(t, repo.DB().Model(&nod.EdgeTag{}).Where("edge_id = ?", edgeID).Count(&tagBindingCount).Error)
+	require.Zero(t, kvCount)
+	require.Zero(t, contentCount)
+	require.Zero(t, tagBindingCount)
+}
+
 func testDeleteEdgeIfSourceDeleted(t *testing.T, factory RepositoryFactory) {
 	repo := factory(t)
 	defer repo.Close()

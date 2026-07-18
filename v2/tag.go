@@ -17,3 +17,11 @@ type NodeTag struct {
 	TagId  string    `gorm:"type:varchar(36);primaryKey;index:idx_node_tag,priority:2"`
 	Tag    *Tag      `gorm:"foreignKey:TagId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
+
+// EdgeTag represents the many-to-many relationship between edges and tags.
+type EdgeTag struct {
+	EdgeId string    `gorm:"type:varchar(36);not null;primaryKey;index:idx_edge_tag,priority:1"`
+	Edge   *EdgeCore `gorm:"foreignKey:EdgeId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	TagId  string    `gorm:"type:varchar(36);not null;primaryKey;index:idx_edge_tag,priority:2"`
+	Tag    *Tag      `gorm:"foreignKey:TagId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}

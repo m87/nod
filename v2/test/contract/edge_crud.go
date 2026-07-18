@@ -11,7 +11,9 @@ func testEdgeCrud(t *testing.T, factory RepositoryFactory) {
 	t.Helper()
 
 	t.Run("BasicEdgeSave", func(t *testing.T) { testBasicEdgeSave(t, factory) })
+	t.Run("FullEdgeSave", func(t *testing.T) { testFullEdgeSave(t, factory) })
 	t.Run("DeleteEdge", func(t *testing.T) { testDeleteEdge(t, factory) })
+	t.Run("DeleteEdgeRelatedData", func(t *testing.T) { testDeleteEdgeRelatedData(t, factory) })
 	t.Run("DeleteEdgeIfSourceDeleted", func(t *testing.T) { testDeleteEdgeIfSourceDeleted(t, factory) })
 	t.Run("DeleteEdgeIfTargetDeleted", func(t *testing.T) { testDeleteEdgeIfTargetDeleted(t, factory) })
 }
