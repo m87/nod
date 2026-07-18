@@ -54,3 +54,18 @@ func (q *TypedNodeQuery[T]) FindAll() ([]*T, error) {
 
 	return models, nil
 }
+
+// FindFirst returns the first matching node decoded into T or
+// gorm.ErrRecordNotFound when no node matches the query.
+func (q *TypedNodeQuery[T]) FindFirst() (*T, error) {
+	node, err := q.query.FindFirst()
+	if err != nil {
+		return nil, err
+	}
+	return modelFromNode[T](q.query.repository.adapters, node)
+}
+
+// DeleteAll deletes every node matching the query.
+func (q *TypedNodeQuery[T]) DeleteAll() error {
+	return q.query.DeleteAll()
+}

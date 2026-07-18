@@ -112,6 +112,9 @@ func (scope *NodeScope[T]) GetNode(id string) (*T, error) {
 	}
 
 	content, err := scope.repository.getNodeContents(id)
+	if err != nil {
+		return nil, err
+	}
 
 	contentMap := make(map[string]*NodeContent)
 	for _, c := range content {

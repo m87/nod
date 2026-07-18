@@ -105,6 +105,8 @@ func kvColumnName(fieldType ValueType) (string, error) {
 		return "value_text", nil
 	case ValueTypeInt:
 		return "value_int", nil
+	case ValueTypeTime:
+		return "value_time", nil
 	default:
 		return "", fmt.Errorf("unsupported KV field type: %v", fieldType)
 	}

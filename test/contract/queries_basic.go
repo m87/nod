@@ -5,6 +5,7 @@ import (
 
 	"github.com/m87/nod"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func testQueryBasic(t *testing.T, factory RepositoryFactory) {
@@ -33,5 +34,39 @@ func testQueryBasic(t *testing.T, factory RepositoryFactory) {
 
 		require.NoError(t, err)
 		require.Empty(t, nodes)
+	})
+
+	t.Run("finds the first matching node", func(t *testing.T) {
+		node, err := nod.NewNodeQuery(repo).
+			Where(nod.NodeFields.Name.Equals("beta")).
+			FindFirst()
+
+		require.NoError(t, err)
+		require.Equal(t, "beta", node.Core.Name)
+	})
+
+	t.Run("returns record not found when no first node matches", func(t *testing.T) {
+		node, err := nod.NewNodeQuery(repo).
+			Where(nod.NodeFields.Name.Equals("missing")).
+			FindFirst()
+
+		require.Nil(t, node)
+		require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	})
+
+	t.Run("deletes matching nodes", func(t *testing.T) {
+		err := nod.NewNodeQuery(repo).
+			Where(nod.NodeFields.Name.Equals("beta")).
+			DeleteAll()
+		require.NoError(t, err)
+
+		_, err = repo.Nodes().GetNode(queryNodeBetaID)
+		require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	})
+
+	t.Run("rejects an unfiltered delete", func(t *testing.T) {
+		err := nod.NewNodeQuery(repo).DeleteAll()
+
+		require.ErrorIs(t, err, gorm.ErrMissingWhereClause)
 	})
 }

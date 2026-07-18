@@ -1,5 +1,7 @@
 package nod
 
+import "time"
+
 type Scope uint8
 
 const (
@@ -26,6 +28,7 @@ const (
 	ValueTypeInt
 	ValueTypeFloat
 	ValueTypeBool
+	ValueTypeTime
 )
 
 type FieldRef struct {
@@ -70,6 +73,10 @@ type StringField struct {
 }
 
 type StringListField struct {
+	ref FieldRef
+}
+
+type TimeField struct {
 	ref FieldRef
 }
 
@@ -185,6 +192,17 @@ func KvString(name string) StringField {
 	}
 }
 
+// KvTime references a time-valued node or edge KV field.
+func KvTime(name string) TimeField {
+	return TimeField{
+		ref: FieldRef{
+			Source: SourceKV,
+			Type:   ValueTypeTime,
+			Name:   name,
+		},
+	}
+}
+
 func Content(key string) StringField {
 	return StringField{
 		ref: FieldRef{
@@ -216,5 +234,45 @@ func (f StringField) NotIn(value []string) Expression {
 		Field:    f.ref,
 		Operator: OperatorNotIn,
 		Value:    valuesToAny(value),
+	}
+}
+
+func (f TimeField) Equals(value time.Time) Expression {
+	return &comparisionExpression{
+		Field:    f.ref,
+		Operator: OperatorEqual,
+		Value:    value,
+	}
+}
+
+func (f TimeField) GreaterThan(value time.Time) Expression {
+	return &comparisionExpression{
+		Field:    f.ref,
+		Operator: OperatorGreaterThan,
+		Value:    value,
+	}
+}
+
+func (f TimeField) LessThan(value time.Time) Expression {
+	return &comparisionExpression{
+		Field:    f.ref,
+		Operator: OperatorLessThan,
+		Value:    value,
+	}
+}
+
+func (f TimeField) GreaterThanOrEqual(value time.Time) Expression {
+	return &comparisionExpression{
+		Field:    f.ref,
+		Operator: OperatorGreaterThanOrEqual,
+		Value:    value,
+	}
+}
+
+func (f TimeField) LessThanOrEqual(value time.Time) Expression {
+	return &comparisionExpression{
+		Field:    f.ref,
+		Operator: OperatorLessThanOrEqual,
+		Value:    value,
 	}
 }
