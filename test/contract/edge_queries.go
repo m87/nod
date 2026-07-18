@@ -14,4 +14,5 @@ func testEdgeQueries(t *testing.T, factory RepositoryFactory) {
 	t.Run("LogicalOperators", func(t *testing.T) { testEdgeQueryLogicalOperators(t, factory) })
 	t.Run("MultipleWhere", func(t *testing.T) { testEdgeQueryMultipleWhere(t, factory) })
 	t.Run("LazyLoading", func(t *testing.T) { testEdgeQueryLazyLoading(t, factory) })
+	t.Run("Typed", func(t *testing.T) { testTypedEdgeQuery(t, factory) })
 }

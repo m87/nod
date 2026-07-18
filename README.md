@@ -84,13 +84,24 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	found, err := nodes.GetNode(id)
+	found, err := nod.NewTypedNodeQuery[MyNode](repo).
+		Where(nod.NodeFields.Id.Equals(id)).
+		FindAll()
 	if err != nil {
 		panic(err)
 	}
-	slog.Info("Found node", "name", found.Name)
+	slog.Info("Found node", "name", found[0].Name)
 }
 ```
+
+Typed edge queries use the same API through `nod.NewTypedEdgeQuery[MyEdge](repo)`.
+
+## Examples
+
+- [Basic repository usage](examples/basic/basic.go)
+- [Typed model with a registered adapter](examples/typed/typed.go)
+- [Typed model implementing `NodeCodec`](examples/codec/codec.go)
+- [Domain-specific query conditions](examples/custom_query/custom_query.go)
 
 ## Documentation
 

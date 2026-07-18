@@ -14,4 +14,5 @@ func testQueries(t *testing.T, factory RepositoryFactory) {
 	t.Run("LogicalOperators", func(t *testing.T) { testQueryLogicalOperators(t, factory) })
 	t.Run("MultipleWhere", func(t *testing.T) { testQueryMultipleWhere(t, factory) })
 	t.Run("LazyLoading", func(t *testing.T) { testQueryLazyLoading(t, factory) })
+	t.Run("Typed", func(t *testing.T) { testTypedNodeQuery(t, factory) })
 }

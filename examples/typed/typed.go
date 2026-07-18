@@ -47,9 +47,15 @@ func main() {
 		panic(err)
 	}
 
-	found, err := nodes.GetNode(id)
+	found, err := nod.NewTypedNodeQuery[MyNode](repo).
+		Where(nod.NodeFields.Id.Equals(id)).
+		FindAll()
 	if err != nil {
 		panic(err)
 	}
-	slog.Info("Found node", "name", found.name)
+	if len(found) == 0 {
+		panic("node not found")
+	}
+
+	slog.Info("Found node", "name", found[0].name)
 }
