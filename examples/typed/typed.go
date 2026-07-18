@@ -47,7 +47,7 @@ func main() {
 		panic(err)
 	}
 
-	found, err := nod.NewTypedNodeQuery[MyNode](repo).
+	found, err := nodes.Query().
 		Where(nod.NodeFields.Id.Equals(id)).
 		FindAll()
 	if err != nil {

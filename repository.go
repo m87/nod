@@ -12,10 +12,15 @@ type Repository struct {
 	adapters *AdapterRegistry
 }
 
-func NewRepository(db *gorm.DB, log *slog.Logger, adapters *AdapterRegistry) *Repository {
-	if adapters == nil {
-		adapters = NewAdapterRegistry()
+func NewRepository(db *gorm.DB, log *slog.Logger) *Repository {
+	return &Repository{
+		db:       db,
+		log:      log,
+		adapters: NewAdapterRegistry(),
 	}
+}
+
+func NewRepositoryWithAdapters(db *gorm.DB, log *slog.Logger, adapters *AdapterRegistry) *Repository {
 	return &Repository{
 		db:       db,
 		log:      log,

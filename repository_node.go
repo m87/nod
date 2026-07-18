@@ -24,6 +24,11 @@ func Nodes[T any](repository *Repository) *NodeScope[T] {
 	}
 }
 
+// Query creates a typed node query bound to this scope.
+func (scope *NodeScope[T]) Query() *TypedNodeQuery[T] {
+	return NewTypedNodeQuery[T](scope.repository)
+}
+
 // SaveNode saves the given node to the repository.
 func (scope *NodeScope[T]) SaveNode(model *T) (string, error) {
 	if model == nil {

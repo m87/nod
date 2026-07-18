@@ -21,10 +21,11 @@ func testTypedNodeQuery(t *testing.T, factory RepositoryFactory) {
 			Labels:      []string{"codec", "typed"},
 			Key:         "codec-key",
 		}
-		_, err := nod.Nodes[CustomModelWithNodeCodec](repo).SaveNode(original)
+		scope := nod.Nodes[CustomModelWithNodeCodec](repo)
+		_, err := scope.SaveNode(original)
 		require.NoError(t, err)
 
-		models, err := nod.NewTypedNodeQuery[CustomModelWithNodeCodec](repo).
+		models, err := scope.Query().
 			WithKV().
 			WithContent().
 			WithTags().
@@ -52,10 +53,11 @@ func testTypedNodeQuery(t *testing.T, factory RepositoryFactory) {
 			Labels:      []string{"adapter", "typed"},
 			Key:         "adapter-key",
 		}
-		_, err := nod.Nodes[CustomModelWithAdatper](repo).SaveNode(original)
+		scope := nod.Nodes[CustomModelWithAdatper](repo)
+		_, err := scope.SaveNode(original)
 		require.NoError(t, err)
 
-		models, err := nod.NewTypedNodeQuery[CustomModelWithAdatper](repo).
+		models, err := scope.Query().
 			WithKV().
 			WithContent().
 			WithTags().

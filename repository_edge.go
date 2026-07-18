@@ -24,6 +24,11 @@ func Edges[T any](repository *Repository) *EdgeScope[T] {
 	}
 }
 
+// Query creates a typed edge query bound to this scope.
+func (scope *EdgeScope[T]) Query() *TypedEdgeQuery[T] {
+	return NewTypedEdgeQuery[T](scope.repository)
+}
+
 // SaveEdge saves the given edge to the repository.
 func (scope *EdgeScope[T]) SaveEdge(model *T) (string, error) {
 	if model == nil {

@@ -21,10 +21,11 @@ func testTypedEdgeQuery(t *testing.T, factory RepositoryFactory) {
 			Name:     "codec-query-edge",
 			Key:      "codec-key",
 		}
-		_, err := nod.Edges[CustomEdgeModel](repo).SaveEdge(original)
+		scope := nod.Edges[CustomEdgeModel](repo)
+		_, err := scope.SaveEdge(original)
 		require.NoError(t, err)
 
-		models, err := nod.NewTypedEdgeQuery[CustomEdgeModel](repo).
+		models, err := scope.Query().
 			WithKV().
 			WithContent().
 			WithTags().
@@ -51,10 +52,11 @@ func testTypedEdgeQuery(t *testing.T, factory RepositoryFactory) {
 			Name:     "adapter-query-edge",
 			Key:      "adapter-key",
 		}
-		_, err := nod.Edges[CustomEdgeModelWithAdapter](repo).SaveEdge(original)
+		scope := nod.Edges[CustomEdgeModelWithAdapter](repo)
+		_, err := scope.SaveEdge(original)
 		require.NoError(t, err)
 
-		models, err := nod.NewTypedEdgeQuery[CustomEdgeModelWithAdapter](repo).
+		models, err := scope.Query().
 			WithKV().
 			WithContent().
 			WithTags().

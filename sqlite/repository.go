@@ -20,7 +20,11 @@ func NewRepository(path string, log *slog.Logger, adapters *nod.AdapterRegistry)
 	if err != nil {
 		return nil, err
 	}
-	return nod.NewRepository(db, log, adapters), nil
+	if adapters == nil {
+		return nod.NewRepository(db, log), nil
+	}
+
+	return nod.NewRepositoryWithAdapters(db, log, adapters), nil
 }
 
 // NewRepositoryInMemory creates a new nod Repository backed by an in-memory SQLite database.

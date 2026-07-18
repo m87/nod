@@ -80,12 +80,13 @@ func main() {
 		Published: true,
 		Labels:    []string{"go", "nod"},
 	}
-	id, err := nod.Nodes[Article](repo).SaveNode(article)
+	articles := nod.Nodes[Article](repo)
+	id, err := articles.SaveNode(article)
 	if err != nil {
 		panic(err)
 	}
 
-	found, err := nod.NewTypedNodeQuery[Article](repo).
+	found, err := articles.Query().
 		WithKV().
 		WithContent().
 		WithTags().

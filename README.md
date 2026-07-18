@@ -84,7 +84,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	found, err := nod.NewTypedNodeQuery[MyNode](repo).
+	found, err := nodes.Query().
 		Where(nod.NodeFields.Id.Equals(id)).
 		FindAll()
 	if err != nil {
@@ -94,7 +94,7 @@ func main() {
 }
 ```
 
-Typed edge queries use the same API through `nod.NewTypedEdgeQuery[MyEdge](repo)`.
+Typed edge queries use the same API through `nod.Edges[MyEdge](repo).Query()`.
 
 ## Examples
 

@@ -85,7 +85,7 @@ func main() {
 	}
 
 	// The query uses domain-specific conditions instead of NodeFields or KV keys.
-	found, err := nod.NewTypedNodeQuery[Task](repo).
+	found, err := tasks.Query().
 		WithKV().
 		Where(TaskWhere.OpenInProject("nod")).
 		FindAll()
