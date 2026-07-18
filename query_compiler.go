@@ -210,5 +210,3 @@ func scopePrefix(scope Scope) string {
 		panic(fmt.Sprintf("unsupported scope: %v", scope))
 	}
 }
-
-

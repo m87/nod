@@ -1,10 +1,16 @@
 package nod
 
-import (
-	"time"
-)
+import "time"
 
-// NodeCore holds the core attributes of a tree node stored in the database.
+// Node represents a node with core data, tags, key-value attributes, and content.
+type Node struct {
+	Core    NodeCore
+	Tags    []*Tag
+	KV      map[string]*NodeKV
+	Content map[string]*NodeContent
+}
+
+// NodeCore holds the core attributes of a node stored in the database.
 type NodeCore struct {
 	Id          string    `gorm:"type:varchar(36);primaryKey"`
 	NamespaceId *string   `gorm:"type:varchar(36);index:idx_namespace_id,priority:1;index"`

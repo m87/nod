@@ -1,8 +1,6 @@
 package nod
 
-import (
-
-)
+import ()
 
 //
 // // Filter represents a generic filter with a value, operator, and type information.
@@ -93,4 +91,4 @@ import (
 // 		db = db.Where(column+" < ?", filter.Value)
 // 	}
 // 	return db
-// }	
+// }

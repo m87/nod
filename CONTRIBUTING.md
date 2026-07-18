@@ -16,23 +16,16 @@ Thank you for your interest in contributing!
 go test ./sqlite -v
 ```
 
-**PostgreSQL** (requires a running instance):
-
-```bash
-export NOD_TEST_POSTGRES_DSN='host=localhost port=5432 user=nod password=nod dbname=nod_test sslmode=disable'
-go test ./postgres -v
-```
-
 ## Adding a New Database Adapter
 
 1. Create a new package under the project root (e.g., `mysql/`)
-2. Implement a `NewRepository(dsn, log, mappers)` constructor that returns `*nod.Repository`
-3. Re-use `nod.NewRepository(db, log, mappers)` with the GORM dialector for your database
+2. Implement a `NewRepository(dsn, log, adapters)` constructor that returns `*nod.Repository`
+3. Re-use `nod.NewRepository(db, log, adapters)` with the GORM dialector for your database
 4. Add tests using the contract test suite:
 
 ```go
 contract.RunRepositoryContractTests(t, func(t *testing.T) *nod.Repository {
-    repo, err := NewRepository(dsn, slog.Default(), nod.NewMapperRegistry())
+    repo, err := NewRepository(dsn, slog.Default(), nod.NewAdapterRegistry())
     require.NoError(t, err)
     return repo
 })

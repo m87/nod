@@ -11,32 +11,45 @@ type MyNode struct {
 	name string
 }
 
-type MyMapper struct{}
+type MyAdapter struct{}
 
-func (m MyMapper) ToNode(node *MyNode) (*nod.Node, error) {
+func (m MyAdapter) ToNode(node *MyNode) (*nod.Node, error) {
 	return &nod.Node{
 		Core: nod.NodeCore{Name: node.name, Kind: "my-node"},
 	}, nil
 }
 
-func (m MyMapper) FromNode(node *nod.Node) (*MyNode, error) {
+func (m MyAdapter) FromNode(node *nod.Node) (*MyNode, error) {
 	return &MyNode{name: node.Core.Name}, nil
 }
 
-func (m MyMapper) IsApplicable(node *nod.Node) bool {
-	return true
+func (m MyAdapter) IsApplicable(node *nod.Node) bool {
+	return node.Core.Kind == "my-node"
 }
 
 func main() {
-	registry := nod.NewMapperRegistry()
-	nod.RegisterMapper(registry, MyMapper{})
-	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), registry)
-	typedRepo := nod.NewTypedRepository[MyNode](repo)
+	registry := nod.NewAdapterRegistry()
+	if err := nod.RegisterNodeAdapter(registry, MyAdapter{}); err != nil {
+		panic(err)
+	}
+
+	repo, err := sqlite_nod.NewRepositoryInMemory(slog.Default(), registry)
+	if err != nil {
+		panic(err)
+	}
+	defer repo.Close()
+
+	nodes := nod.Nodes[MyNode](repo)
 
 	node := &MyNode{name: "example"}
-	typedRepo.Save(node)
+	id, err := nodes.SaveNode(node)
+	if err != nil {
+		panic(err)
+	}
 
-	q := typedRepo.Query().NameEquals("example")
-	found, _ := q.First()
+	found, err := nodes.GetNode(id)
+	if err != nil {
+		panic(err)
+	}
 	slog.Info("Found node", "name", found.name)
 }

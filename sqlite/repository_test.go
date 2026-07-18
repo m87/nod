@@ -5,21 +5,21 @@ import (
 	"testing"
 
 	"github.com/m87/nod"
-	"github.com/m87/nod/internal/testsuite/contract"
+	"github.com/m87/nod/test/contract"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRepositoryContractSuite(t *testing.T) {
 	contract.RunRepositoryContractTests(t, func(t *testing.T) *nod.Repository {
 		t.Helper()
-		repo, err := NewRepository(":memory:", slog.Default(), nod.NewMapperRegistry())
+		repo, err := NewRepository(":memory:", slog.Default(), &nod.AdapterRegistry{})
 		require.NoError(t, err)
 		return repo
 	})
 }
 
 func TestInit_EnablesForeignKeys(t *testing.T) {
-	repo, err := NewRepository(":memory:", slog.Default(), nod.NewMapperRegistry())
+	repo, err := NewRepository(":memory:", slog.Default(), nod.NewAdapterRegistry())
 	require.NoError(t, err)
 	defer func() { require.NoError(t, repo.Close()) }()
 
@@ -30,7 +30,7 @@ func TestInit_EnablesForeignKeys(t *testing.T) {
 }
 
 func TestInit_ConfiguresSingleConnectionForInMemory(t *testing.T) {
-	repo, err := NewRepository(":memory:", slog.Default(), nod.NewMapperRegistry())
+	repo, err := NewRepository(":memory:", slog.Default(), nod.NewAdapterRegistry())
 	require.NoError(t, err)
 	defer func() { require.NoError(t, repo.Close()) }()
 

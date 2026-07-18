@@ -1,7 +1,6 @@
 package sqlite
 
 import (
-	"errors"
 	"log/slog"
 	"strings"
 
@@ -16,21 +15,17 @@ const sharedMemoryDSN = "file::memory:?mode=memory&cache=shared"
 
 // NewRepository creates a new nod Repository backed by SQLite at the given path.
 // Use ":memory:" for an in-memory database.
-func NewRepository(path string, log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
+func NewRepository(path string, log *slog.Logger, adapters *nod.AdapterRegistry) (*nod.Repository, error) {
 	db, err := initDB(log, path)
 	if err != nil {
 		return nil, err
 	}
-	return nod.NewRepository(db, log, mappers), nil
+	return nod.NewRepository(db, log, adapters), nil
 }
 
 // NewRepositoryInMemory creates a new nod Repository backed by an in-memory SQLite database.
-func NewRepositoryInMemory(log *slog.Logger, mappers *nod.MapperRegistry) (*nod.Repository, error) {
-	db, err := initDB(log, sharedMemoryDSN)
-	if err != nil {
-		return nil, err
-	}
-	return nod.NewRepository(db, log, mappers), nil
+func NewRepositoryInMemory(log *slog.Logger, adapters *nod.AdapterRegistry) (*nod.Repository, error) {
+	return NewRepository(sharedMemoryDSN, log, adapters)
 }
 
 func initDB(log *slog.Logger, path string) (*gorm.DB, error) {
@@ -91,7 +86,7 @@ func enableForeignKeys(db *gorm.DB) error {
 	}
 
 	if enabled != 1 {
-		return errors.New("sqlite foreign_keys pragma is disabled")
+		return NewForeignKeysDisabledError()
 	}
 
 	return nil

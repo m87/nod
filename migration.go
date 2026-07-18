@@ -2,7 +2,6 @@ package nod
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -35,6 +34,11 @@ func Migrate(db *gorm.DB) error {
 		return err
 	}
 
+	migrateErr := migrateSchemav1(db, version)
+	if migrateErr != nil {
+		return migrateErr
+	}
+
 	if err := db.AutoMigrate(nodSchemaModels()...); err != nil {
 		return err
 	}
@@ -45,16 +49,34 @@ func Migrate(db *gorm.DB) error {
 	return nil
 }
 
+func migrateSchemav1(db *gorm.DB, schemaVersion int) error {
+	if schemaVersion < 2 {
+		if db.Migrator().HasTable("kv") {
+			if err := db.Migrator().RenameTable("kv", "node_kv"); err != nil {
+				return err
+			}
+		}
+		if db.Migrator().HasTable("content") {
+			if err := db.Migrator().RenameTable("content", "node_content"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func nodSchemaModels() []any {
 	return []any{
 		&NodeCore{},
 		&Tag{},
 		&NodeTag{},
-		&KV{},
-		&Content{},
+		&NodeKV{},
+		&NodeContent{},
 		&Property{},
 		&EdgeCore{},
 		&EdgeKV{},
+		&EdgeTag{},
+		&EdgeContent{},
 	}
 }
 
@@ -73,7 +95,7 @@ func readSchemaVersion(db *gorm.DB) (int, bool, error) {
 	}
 	version, err := strconv.Atoi(property.Value)
 	if err != nil {
-		return 0, false, fmt.Errorf("nod: invalid schema version property %q: %w", property.Value, err)
+		return 0, false, NewInvalidSchemaVersionError(err)
 	}
 	return version, true, nil
 }

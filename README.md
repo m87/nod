@@ -1,6 +1,6 @@
 # nod
 
-Golang library for managing tree-structured data with support for tags, key-value attributes (KV), content, and transactions, built on GORM. Supports SQLite and PostgreSQL.
+Golang library for managing tree-structured data with support for tags, key-value attributes (KV), content, and transactions, built on GORM. Includes an SQLite adapter.
 
 ## Installation
 
@@ -21,8 +21,7 @@ import (
 )
 
 func main() {
-	mappers := nod.NewMapperRegistry()
-	repo, err := sqlite_nod.NewRepository(":memory:", slog.Default(), mappers)
+	repo, err := sqlite_nod.NewRepositoryInMemory(slog.Default(), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -31,52 +30,65 @@ func main() {
 	node := &nod.Node{
 		Core: nod.NodeCore{Name: "root", Kind: "folder"},
 	}
-	id, _ := repo.Save(node)
+	if _, err := repo.Nodes().SaveNode(node); err != nil {
+		panic(err)
+	}
 
-	found, _ := repo.Query().NodeId(id).First()
-	slog.Info("Found node", "name", found.Core.Name)
+	found, err := nod.NewNodeQuery(repo).
+		Where(nod.NodeFields.Name.Equals("root")).
+		FindAll()
+	if err != nil {
+		panic(err)
+	}
+
+	slog.Info("Found node", "name", found[0].Core.Name)
 }
 ```
 
-For PostgreSQL, use the `postgres` adapter:
+## Typed Nodes
 
-```go
-import postgres_nod "github.com/m87/nod/postgres"
-
-repo, err := postgres_nod.NewRepository(dsn, slog.Default(), mappers)
-```
-
-## Typed Repository
-
-Register a mapper to work with your own domain models:
+Register an adapter to work with your own domain models:
 
 ```go
 type MyNode struct {
 	Name string
 }
 
-type MyMapper struct{}
+type MyAdapter struct{}
 
-func (m MyMapper) ToNode(model *MyNode) (*nod.Node, error) {
+func (m MyAdapter) ToNode(model *MyNode) (*nod.Node, error) {
 	return &nod.Node{
 		Core: nod.NodeCore{Name: model.Name, Kind: "my-node"},
 	}, nil
 }
-func (m MyMapper) FromNode(node *nod.Node) (*MyNode, error) {
+func (m MyAdapter) FromNode(node *nod.Node) (*MyNode, error) {
 	return &MyNode{Name: node.Core.Name}, nil
 }
-func (m MyMapper) IsApplicable(node *nod.Node) bool {
+func (m MyAdapter) IsApplicable(node *nod.Node) bool {
 	return node.Core.Kind == "my-node"
 }
 
 func main() {
-	registry := nod.NewMapperRegistry()
-	nod.RegisterMapper(registry, MyMapper{})
-	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), registry)
+	registry := nod.NewAdapterRegistry()
+	if err := nod.RegisterNodeAdapter(registry, MyAdapter{}); err != nil {
+		panic(err)
+	}
+	repo, err := sqlite_nod.NewRepositoryInMemory(slog.Default(), registry)
+	if err != nil {
+		panic(err)
+	}
+	defer repo.Close()
 
-	typed := nod.NewTypedRepository[MyNode](repo)
-	typed.Save(&MyNode{Name: "example"})
-	found, _ := typed.Query().NameEquals("example").First()
+	nodes := nod.Nodes[MyNode](repo)
+	id, err := nodes.SaveNode(&MyNode{Name: "example"})
+	if err != nil {
+		panic(err)
+	}
+	found, err := nodes.GetNode(id)
+	if err != nil {
+		panic(err)
+	}
+	slog.Info("Found node", "name", found.Name)
 }
 ```
 
@@ -96,13 +108,6 @@ Run SQLite adapter tests:
 
 ```
 go test ./sqlite -v
-```
-
-Run Postgres adapter tests (requires DSN):
-
-```
-export NOD_TEST_POSTGRES_DSN='host=localhost port=5432 user=nod password=nod dbname=nod_test sslmode=disable'
-go test ./postgres -v
 ```
 
 ## License

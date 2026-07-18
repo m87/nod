@@ -8,14 +8,28 @@ import (
 )
 
 func main() {
-	repo, _ := sqlite_nod.NewRepository(":memory:", slog.Default(), nod.NewMapperRegistry())
+	repo, err := sqlite_nod.NewRepositoryInMemory(slog.Default(), nil)
+	if err != nil {
+		panic(err)
+	}
+	defer repo.Close()
 
 	node := &nod.Node{
 		Core: nod.NodeCore{Name: "example", Kind: "folder"},
 	}
-	repo.Save(node)
+	if _, err := repo.Nodes().SaveNode(node); err != nil {
+		panic(err)
+	}
 
-	q := repo.Query().NameEquals("example")
-	found, _ := q.First()
-	slog.Info("Found node", "name", found.Core.Name)
+	found, err := nod.NewNodeQuery(repo).
+		Where(nod.NodeFields.Name.Equals("example")).
+		FindAll()
+	if err != nil {
+		panic(err)
+	}
+	if len(found) == 0 {
+		panic("node not found")
+	}
+
+	slog.Info("Found node", "name", found[0].Core.Name)
 }

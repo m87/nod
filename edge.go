@@ -2,6 +2,13 @@ package nod
 
 import "time"
 
+type Edge struct {
+	Core    EdgeCore
+	Tags    []*Tag
+	KV      map[string]*EdgeKV
+	Content map[string]*EdgeContent
+}
+
 // EdgeCore holds the core attributes of a directed edge between two nodes.
 type EdgeCore struct {
 	Id          string    `gorm:"type:varchar(36);primaryKey"`
@@ -15,10 +22,4 @@ type EdgeCore struct {
 	Status      string    `gorm:"type:text;not null;index;default:''"`
 	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"not null;autoUpdateTime"`
-}
-
-// Edge represents a directed edge with core data and key-value attributes.
-type Edge struct {
-	Core EdgeCore
-	KV   map[string]*EdgeKV
 }
