@@ -12,4 +12,5 @@ func testQueries(t *testing.T, factory RepositoryFactory) {
 	t.Run("FindMultipleNodes", func(t *testing.T) { testFindMultipleNodes(t, factory) })
 	t.Run("FindByKV", func(t *testing.T) { testFindByKv(t, factory) })
 	t.Run("FindByNodeAndKV", func(t *testing.T) { testFindByCoreAndKv(t, factory) })
+	t.Run("FullSearch", func(t *testing.T) { testFullSearch(t, factory) })
 }

@@ -167,12 +167,12 @@ func KvString(name string) StringField {
 	}
 }
 
-func Content(name string) StringField {
+func Content(key string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceContent,
 			Type: ValueTypeString,
-			Name: name,
+			Name: key,
 		},
 	}
 }

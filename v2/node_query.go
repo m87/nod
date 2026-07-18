@@ -27,6 +27,18 @@ func And(exprs ...Expression) Expression {
 	}
 }
 
+func Or(exprs ...Expression) Expression {
+	if len(exprs) == 0 {
+		return nil
+	}
+	if len(exprs) == 1 {
+		return exprs[0]
+	}
+	return &orExpression{
+		Expressions: exprs,
+	}
+}
+
 func (q *NodeQuery) Where(expr Expression) *NodeQuery {
 	if expr == nil {
 		return q

@@ -86,10 +86,10 @@ func (c queryCompiler) compileComparison(expr *comparisionExpression) (clause.Ex
 		return c.compileCoreComparison(expr)
 	case SourceKV:
 		return c.compileKVComparison(expr)
-	// case SourceContent:
-	// 	return c.compileContentComparison(expr)
-	// case SourceTag:
-	// 	return c.compileTagComparison(expr)
+	case SourceContent:
+		return c.compileContentComparison(expr)
+	case SourceTag:
+		return c.compileTagComparison(expr)
 	default:
 		return nil, fmt.Errorf("unsupported field source: %v", expr.Field.Source)
 	}
@@ -126,9 +126,27 @@ func (c queryCompiler) compileKVComparison(expr *comparisionExpression) (clause.
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
 }
 
-// func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (clause.Expression, error) {}
-//
-// func (c queryCompiler) compileTagComparison(expr *comparisionExpression) (clause.Expression, error) {}
+func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (clause.Expression, error) {
+	column := clause.Column{Table: "node_contents", Name: expr.Field.Name}
+	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Value)
+	if err != nil {
+		return nil, err
+	}
+	subquery := c.db.Session(&gorm.Session{NewDB: true}).Table("node_contents").Select("1").Where("node_contents.node_id = node_cores.id").Where(scalarComperison)
+	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
+}
+
+func (c queryCompiler) compileTagComparison(expr *comparisionExpression) (clause.Expression, error) {
+	column := clause.Column{Table: "node_tags", Name: "tag_name"}
+
+	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Field.Name)
+	if err != nil {
+		return nil, err
+	}
+	subquery := c.db.Session(&gorm.Session{NewDB: true}).Table("node_tags").Select("1").Where("node_tags.node_id = node_cores.id").Where(scalarComperison)
+	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
+
+}
 
 func compileScalarComparison(column clause.Column, operator Operator, value any) (clause.Expression, error) {
 	switch operator {
