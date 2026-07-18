@@ -7,8 +7,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-
-
 type queryCompiler struct {
 	db *gorm.DB
 }
@@ -26,7 +24,7 @@ func (c queryCompiler) compile(expr Expression) (clause.Expression, error) {
 	}
 }
 
-func (c queryCompiler) compileAnd(expr *andExpression) (clause.Expression, error) { 
+func (c queryCompiler) compileAnd(expr *andExpression) (clause.Expression, error) {
 	if len(expr.Expressions) == 0 {
 		return nil, nil
 	}
@@ -127,23 +125,33 @@ func (c queryCompiler) compileKVComparison(expr *comparisionExpression) (clause.
 }
 
 func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (clause.Expression, error) {
-	column := clause.Column{Table: "node_contents", Name: expr.Field.Name}
+	column := clause.Column{Table: "node_contents", Name: "value"}
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Value)
 	if err != nil {
 		return nil, err
 	}
-	subquery := c.db.Session(&gorm.Session{NewDB: true}).Table("node_contents").Select("1").Where("node_contents.node_id = node_cores.id").Where(scalarComperison)
+	subquery := c.db.Session(&gorm.Session{NewDB: true}).
+		Table("node_contents").
+		Select("1").
+		Where("node_contents.node_id = node_cores.id").
+		Where("node_contents.key = ?", expr.Field.Name).
+		Where(scalarComperison)
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
 }
 
 func (c queryCompiler) compileTagComparison(expr *comparisionExpression) (clause.Expression, error) {
-	column := clause.Column{Table: "node_tags", Name: "tag_name"}
+	column := clause.Column{Table: "tags", Name: "name"}
 
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Field.Name)
 	if err != nil {
 		return nil, err
 	}
-	subquery := c.db.Session(&gorm.Session{NewDB: true}).Table("node_tags").Select("1").Where("node_tags.node_id = node_cores.id").Where(scalarComperison)
+	subquery := c.db.Session(&gorm.Session{NewDB: true}).
+		Table("node_tags").
+		Select("1").
+		Joins("JOIN tags ON tags.id = node_tags.tag_id").
+		Where("node_tags.node_id = node_cores.id").
+		Where(scalarComperison)
 	return clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{subquery}}, nil
 
 }

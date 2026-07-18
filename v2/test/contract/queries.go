@@ -2,15 +2,15 @@ package contract
 
 import "testing"
 
-
-
 func testQueries(t *testing.T, factory RepositoryFactory) {
 	t.Helper()
 
-	t.Run("FindAllNodes", func(t *testing.T) { testFindAllNodes(t, factory) })
-	t.Run("FindAllNodesWithNoFilter", func(t *testing.T) { testFindAllNodesWithNoFilter(t, factory) })
-	t.Run("FindMultipleNodes", func(t *testing.T) { testFindMultipleNodes(t, factory) })
-	t.Run("FindByKV", func(t *testing.T) { testFindByKv(t, factory) })
-	t.Run("FindByNodeAndKV", func(t *testing.T) { testFindByCoreAndKv(t, factory) })
-	t.Run("FullSearch", func(t *testing.T) { testFullSearch(t, factory) })
+	t.Run("Basic", func(t *testing.T) { testQueryBasic(t, factory) })
+	t.Run("CoreFields", func(t *testing.T) { testQueryCoreFields(t, factory) })
+	t.Run("Tags", func(t *testing.T) { testQueryTags(t, factory) })
+	t.Run("Content", func(t *testing.T) { testQueryContent(t, factory) })
+	t.Run("KV", func(t *testing.T) { testQueryKV(t, factory) })
+	t.Run("MixedParameters", func(t *testing.T) { testQueryMixedParameters(t, factory) })
+	t.Run("LogicalOperators", func(t *testing.T) { testQueryLogicalOperators(t, factory) })
+	t.Run("MultipleWhere", func(t *testing.T) { testQueryMultipleWhere(t, factory) })
 }
