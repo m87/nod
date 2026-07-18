@@ -13,8 +13,8 @@ func testQueryLogicalOperators(t *testing.T, factory RepositoryFactory) {
 	t.Run("and", func(t *testing.T) {
 		nodes, err := nod.NewNodeQuery(repo).
 			Where(nod.And(
-				nod.CoreFields.Kind.Equals("article"),
-				nod.CoreFields.Status.Equals("published"),
+				nod.NodeFields.Kind.Equals("article"),
+				nod.NodeFields.Status.Equals("published"),
 			)).
 			FindAll()
 
@@ -25,8 +25,8 @@ func testQueryLogicalOperators(t *testing.T, factory RepositoryFactory) {
 	t.Run("or", func(t *testing.T) {
 		nodes, err := nod.NewNodeQuery(repo).
 			Where(nod.Or(
-				nod.CoreFields.Kind.Equals("note"),
-				nod.CoreFields.Kind.Equals("task"),
+				nod.NodeFields.Kind.Equals("note"),
+				nod.NodeFields.Kind.Equals("task"),
 			)).
 			FindAll()
 
@@ -38,10 +38,10 @@ func testQueryLogicalOperators(t *testing.T, factory RepositoryFactory) {
 		nodes, err := nod.NewNodeQuery(repo).
 			Where(nod.And(
 				nod.Or(
-					nod.CoreFields.Kind.Equals("article"),
-					nod.CoreFields.Kind.Equals("note"),
+					nod.NodeFields.Kind.Equals("article"),
+					nod.NodeFields.Kind.Equals("note"),
 				),
-				nod.CoreFields.Status.Equals("published"),
+				nod.NodeFields.Status.Equals("published"),
 				nod.Or(
 					nod.Tags().Has("featured"),
 					nod.KvString("color").Equals("blue"),
@@ -57,12 +57,12 @@ func testQueryLogicalOperators(t *testing.T, factory RepositoryFactory) {
 		nodes, err := nod.NewNodeQuery(repo).
 			Where(nod.Or(
 				nod.And(
-					nod.CoreFields.Kind.Equals("article"),
-					nod.CoreFields.Status.Equals("draft"),
+					nod.NodeFields.Kind.Equals("article"),
+					nod.NodeFields.Status.Equals("draft"),
 				),
 				nod.And(
-					nod.CoreFields.Kind.Equals("note"),
-					nod.CoreFields.Status.Equals("published"),
+					nod.NodeFields.Kind.Equals("note"),
+					nod.NodeFields.Status.Equals("published"),
 				),
 			)).
 			FindAll()

@@ -1,9 +1,13 @@
 package nod
 
+type Scope uint8
+
+const (
+	ScopeNode Scope = iota
+	ScopeEdge
+)
 
 type Expression interface {
-
-
 }
 
 type FiledSource uint8
@@ -26,8 +30,8 @@ const (
 
 type FieldRef struct {
 	Source FiledSource
-	Type  ValueType
-	Name	string
+	Type   ValueType
+	Name   string
 }
 
 type Operator uint8
@@ -44,9 +48,9 @@ const (
 )
 
 type comparisionExpression struct {
-	Field FieldRef
+	Field    FieldRef
 	Operator Operator
-	Value any
+	Value    any
 }
 
 type orExpression struct {
@@ -69,48 +73,47 @@ type StringListField struct {
 	ref FieldRef
 }
 
-func coreStringField(name string) StringField  {
+func coreStringField(name string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceCore,
-			Type: ValueTypeString,
-			Name: name,
+			Type:   ValueTypeString,
+			Name:   name,
 		},
-	}	
+	}
 }
 
-func kvString(name string) StringField  {
+func kvString(name string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceKV,
-			Type: ValueTypeString,
-			Name: name,
+			Type:   ValueTypeString,
+			Name:   name,
 		},
-	}	
+	}
 }
 
-func kvInt(name string) StringField  {
+func kvInt(name string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceKV,
-			Type: ValueTypeInt,
-			Name: name,
+			Type:   ValueTypeInt,
+			Name:   name,
 		},
-	}	
+	}
 }
 
-func content(name string) StringField  {
+func content(name string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceContent,
-			Type: ValueTypeString,
-			Name: name,
+			Type:   ValueTypeString,
+			Name:   name,
 		},
-	}	
+	}
 }
 
-
-type TagsField struct {}
+type TagsField struct{}
 
 func Tags() TagsField {
 	return TagsField{}
@@ -120,49 +123,64 @@ func (f TagsField) Has(tagName string) Expression {
 	return &comparisionExpression{
 		Field: FieldRef{
 			Source: SourceTag,
-			Type: ValueTypeString,
-			Name: tagName,
+			Type:   ValueTypeString,
+			Name:   tagName,
 		},
 		Operator: OperatorEqual,
-		Value: true,
+		Value:    true,
 	}
 }
 
 func valuesToAny[T any](values []T) []any {
-    result := make([]any, len(values))
+	result := make([]any, len(values))
 
-    for i, value := range values {
-        result[i] = value
-    }
+	for i, value := range values {
+		result[i] = value
+	}
 
-    return result
+	return result
 }
 
-
-
-var CoreFields = struct {
-	Id StringField
-	Name StringField
+var EdgeFields = struct {
+	Id          StringField
+	Name        StringField
 	NamespaceId StringField
-	ParentId StringField
-	Status StringField
-	Kind StringField
-
+	SourceId    StringField
+	TargetId    StringField
+	Status      StringField
+	Kind        StringField
 }{
-	Id: coreStringField("id"),
-	Name: coreStringField("name"),
+	Id:          coreStringField("id"),
+	Name:        coreStringField("name"),
 	NamespaceId: coreStringField("namespace_id"),
-	ParentId: coreStringField("parent_id"),
-	Status: coreStringField("status"),
-	Kind: coreStringField("kind"),
+	SourceId:    coreStringField("source_id"),
+	TargetId:    coreStringField("target_id"),
+	Status:      coreStringField("status"),
+	Kind:        coreStringField("kind"),
+}
+
+var NodeFields = struct {
+	Id          StringField
+	Name        StringField
+	NamespaceId StringField
+	ParentId    StringField
+	Status      StringField
+	Kind        StringField
+}{
+	Id:          coreStringField("id"),
+	Name:        coreStringField("name"),
+	NamespaceId: coreStringField("namespace_id"),
+	ParentId:    coreStringField("parent_id"),
+	Status:      coreStringField("status"),
+	Kind:        coreStringField("kind"),
 }
 
 func KvString(name string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceKV,
-			Type: ValueTypeString,
-			Name: name,
+			Type:   ValueTypeString,
+			Name:   name,
 		},
 	}
 }
@@ -171,34 +189,32 @@ func Content(key string) StringField {
 	return StringField{
 		ref: FieldRef{
 			Source: SourceContent,
-			Type: ValueTypeString,
-			Name: key,
+			Type:   ValueTypeString,
+			Name:   key,
 		},
 	}
 }
 
 func (f StringField) Equals(value string) Expression {
 	return &comparisionExpression{
-		Field: f.ref,
+		Field:    f.ref,
 		Operator: OperatorEqual,
-		Value: value,
+		Value:    value,
 	}
 }
 
 func (f StringField) In(value []string) Expression {
 	return &comparisionExpression{
-		Field: f.ref,
+		Field:    f.ref,
 		Operator: OperatorIn,
-		Value: valuesToAny(value),
+		Value:    valuesToAny(value),
 	}
 }
 
 func (f StringField) NotIn(value []string) Expression {
 	return &comparisionExpression{
-		Field: f.ref,
+		Field:    f.ref,
 		Operator: OperatorNotIn,
-		Value: valuesToAny(value),
+		Value:    valuesToAny(value),
 	}
 }
-
-

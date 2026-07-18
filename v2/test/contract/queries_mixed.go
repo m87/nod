@@ -12,8 +12,8 @@ func testQueryMixedParameters(t *testing.T, factory RepositoryFactory) {
 
 	nodes, err := nod.NewNodeQuery(repo).
 		Where(nod.And(
-			nod.CoreFields.Kind.Equals("article"),
-			nod.CoreFields.Status.Equals("published"),
+			nod.NodeFields.Kind.Equals("article"),
+			nod.NodeFields.Status.Equals("published"),
 			nod.KvString("language").Equals("pl"),
 			nod.Content("body").Equals("alpha body"),
 			nod.Tags().Has("featured"),

@@ -11,9 +11,9 @@ func testQueryMultipleWhere(t *testing.T, factory RepositoryFactory) {
 	repo := createQueryTestRepository(t, factory)
 
 	nodes, err := nod.NewNodeQuery(repo).
-		Where(nod.CoreFields.Kind.Equals("article")).
+		Where(nod.NodeFields.Kind.Equals("article")).
 		Where(nod.Or(
-			nod.CoreFields.Status.Equals("published"),
+			nod.NodeFields.Status.Equals("published"),
 			nod.Tags().Has("tech"),
 		)).
 		Where(nod.KvString("color").Equals("red")).

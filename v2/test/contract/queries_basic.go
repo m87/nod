@@ -19,7 +19,7 @@ func testQueryBasic(t *testing.T, factory RepositoryFactory) {
 
 	t.Run("finds one node with a simple filter", func(t *testing.T) {
 		nodes, err := nod.NewNodeQuery(repo).
-			Where(nod.CoreFields.Name.Equals("beta")).
+			Where(nod.NodeFields.Name.Equals("beta")).
 			FindAll()
 
 		require.NoError(t, err)
@@ -28,7 +28,7 @@ func testQueryBasic(t *testing.T, factory RepositoryFactory) {
 
 	t.Run("returns an empty result when nothing matches", func(t *testing.T) {
 		nodes, err := nod.NewNodeQuery(repo).
-			Where(nod.CoreFields.Name.Equals("missing")).
+			Where(nod.NodeFields.Name.Equals("missing")).
 			FindAll()
 
 		require.NoError(t, err)

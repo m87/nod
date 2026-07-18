@@ -58,7 +58,7 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 
 	var err error
 	if q.where != nil {
-		db, err = applyExpression(db, q.where)
+		db, err = applyExpression(db, q.where, ScopeNode)
 		if err != nil {
 			return nil, err
 		}
@@ -77,8 +77,8 @@ func (q *NodeQuery) FindAll() ([]*Node, error) {
 	return nodes, result.Error
 }
 
-func applyExpression(db *gorm.DB, expr Expression) (*gorm.DB, error) {
-	compiler := queryCompiler{db: db}
+func applyExpression(db *gorm.DB, expr Expression, scope Scope) (*gorm.DB, error) {
+	compiler := queryCompiler{db: db, scope: scope}
 	clauseExpr, err := compiler.compile(expr)
 	if err != nil {
 		panic(err) 	

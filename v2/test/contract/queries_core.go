@@ -17,42 +17,42 @@ func testQueryCoreFields(t *testing.T, factory RepositoryFactory) {
 	}{
 		{
 			name:       "id",
-			expression: nod.CoreFields.Id.Equals(queryNodeAlphaID),
+			expression: nod.NodeFields.Id.Equals(queryNodeAlphaID),
 			expected:   []string{"alpha"},
 		},
 		{
 			name:       "name",
-			expression: nod.CoreFields.Name.Equals("beta"),
+			expression: nod.NodeFields.Name.Equals("beta"),
 			expected:   []string{"beta"},
 		},
 		{
 			name:       "namespace id",
-			expression: nod.CoreFields.NamespaceId.Equals(queryNamespaceA),
+			expression: nod.NodeFields.NamespaceId.Equals(queryNamespaceA),
 			expected:   []string{"alpha", "beta"},
 		},
 		{
 			name:       "parent id",
-			expression: nod.CoreFields.ParentId.Equals(queryNodeAlphaID),
+			expression: nod.NodeFields.ParentId.Equals(queryNodeAlphaID),
 			expected:   []string{"beta"},
 		},
 		{
 			name:       "kind",
-			expression: nod.CoreFields.Kind.Equals("article"),
+			expression: nod.NodeFields.Kind.Equals("article"),
 			expected:   []string{"alpha", "beta"},
 		},
 		{
 			name:       "status",
-			expression: nod.CoreFields.Status.Equals("published"),
+			expression: nod.NodeFields.Status.Equals("published"),
 			expected:   []string{"alpha", "gamma"},
 		},
 		{
 			name:       "in",
-			expression: nod.CoreFields.Kind.In([]string{"article", "task"}),
+			expression: nod.NodeFields.Kind.In([]string{"article", "task"}),
 			expected:   []string{"alpha", "beta", "delta"},
 		},
 		{
 			name:       "not in",
-			expression: nod.CoreFields.Status.NotIn([]string{"draft", "archived"}),
+			expression: nod.NodeFields.Status.NotIn([]string{"draft", "archived"}),
 			expected:   []string{"alpha", "gamma"},
 		},
 	}
