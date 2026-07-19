@@ -35,6 +35,10 @@ func Migrate(db *gorm.DB) error {
 		return err
 	}
 
+	if err := repairOrphanedNodeRelations(db); err != nil {
+		return err
+	}
+
 	if err := migrateLegacyNodeTables(db); err != nil {
 		return err
 	}
@@ -61,6 +65,48 @@ func migrateLegacyNodeTables(db *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+func repairOrphanedNodeRelations(db *gorm.DB) error {
+	if !db.Migrator().HasTable("node_cores") {
+		return nil
+	}
+
+	cleanups := []struct {
+		table     string
+		statement string
+	}{
+		{"kvs", `DELETE FROM "kvs" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "kvs"."node_id")`},
+		{"kv", `DELETE FROM "kv" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "kv"."node_id")`},
+		{"node_kv", `DELETE FROM "node_kv" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "node_kv"."node_id")`},
+		{"node_kvs", `DELETE FROM "node_kvs" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "node_kvs"."node_id")`},
+		{"contents", `DELETE FROM "contents" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "contents"."node_id")`},
+		{"content", `DELETE FROM "content" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "content"."node_id")`},
+		{"node_content", `DELETE FROM "node_content" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "node_content"."node_id")`},
+		{"node_contents", `DELETE FROM "node_contents" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "node_contents"."node_id")`},
+	}
+
+	for _, cleanup := range cleanups {
+		if !db.Migrator().HasTable(cleanup.table) {
+			continue
+		}
+		if err := db.Exec(cleanup.statement).Error; err != nil {
+			return err
+		}
+	}
+
+	if db.Migrator().HasTable("node_tags") {
+		if err := db.Exec(`DELETE FROM "node_tags" WHERE NOT EXISTS (SELECT 1 FROM "node_cores" WHERE "node_cores"."id" = "node_tags"."node_id")`).Error; err != nil {
+			return err
+		}
+		if db.Migrator().HasTable("tags") {
+			if err := db.Exec(`DELETE FROM "node_tags" WHERE NOT EXISTS (SELECT 1 FROM "tags" WHERE "tags"."id" = "node_tags"."tag_id")`).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return db.Exec(`UPDATE "node_cores" SET "parent_id" = NULL WHERE "parent_id" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "node_cores" AS "parents" WHERE "parents"."id" = "node_cores"."parent_id")`).Error
 }
 
 func migrateLegacyNodeKVTable(db *gorm.DB, source string) error {

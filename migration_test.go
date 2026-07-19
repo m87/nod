@@ -113,3 +113,60 @@ func TestMigrateRepairsVersionTwoNodeTables(t *testing.T) {
 	require.Equal(t, "current-key", kvs[0].Key)
 	require.Equal(t, "legacy-key", kvs[1].Key)
 }
+
+func TestMigrateRemovesOrphanedLegacyNodeRelations(t *testing.T) {
+	db, err := gorm.Open(sqlite.New(sqlite.Config{
+		DSN:        ":memory:",
+		DriverName: "sqlite",
+	}), &gorm.Config{})
+	require.NoError(t, err)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlDB.SetMaxOpenConns(1)
+
+	require.NoError(t, db.Exec("PRAGMA foreign_keys = ON").Error)
+	require.NoError(t, db.AutoMigrate(
+		&NodeCore{},
+		&legacyNodeKV{},
+		&legacyNodeContent{},
+		&Property{},
+	))
+	require.NoError(t, db.Create(&NodeCore{Id: "existing-node", Name: "existing", Kind: "test"}).Error)
+	require.NoError(t, db.Create(&legacyNodeKV{
+		NodeId:    "existing-node",
+		Key:       "valid-key",
+		ValueText: Ptr("valid-value"),
+	}).Error)
+
+	require.NoError(t, db.Exec("PRAGMA foreign_keys = OFF").Error)
+	require.NoError(t, db.Create(&legacyNodeKV{
+		NodeId:    "missing-node",
+		Key:       "orphan-key",
+		ValueText: Ptr("orphan-value"),
+	}).Error)
+	require.NoError(t, db.Create(&legacyNodeContent{
+		NodeId: "missing-node",
+		Key:    "orphan-content",
+		Value:  Ptr("orphan-value"),
+	}).Error)
+	require.NoError(t, db.Exec("PRAGMA foreign_keys = ON").Error)
+
+	require.NoError(t, Migrate(db))
+
+	var validKV NodeKV
+	require.NoError(t, db.First(&validKV, "node_id = ? AND key = ?", "existing-node", "valid-key").Error)
+	require.Equal(t, "valid-value", *validKV.ValueText)
+
+	var orphanedRows int64
+	require.NoError(t, db.Table("node_kvs").Where("node_id = ?", "missing-node").Count(&orphanedRows).Error)
+	require.Zero(t, orphanedRows)
+	require.NoError(t, db.Table("node_contents").Where("node_id = ?", "missing-node").Count(&orphanedRows).Error)
+	require.Zero(t, orphanedRows)
+
+	var foreignKeyViolations []struct {
+		Table string
+	}
+	require.NoError(t, db.Raw("PRAGMA foreign_key_check").Scan(&foreignKeyViolations).Error)
+	require.Empty(t, foreignKeyViolations)
+}
