@@ -10,6 +10,7 @@ const (
 )
 
 type Expression interface {
+	expression()
 }
 
 type FiledSource uint8
@@ -67,6 +68,11 @@ type andExpression struct {
 type notExpression struct {
 	Expression Expression
 }
+
+func (*comparisionExpression) expression() {}
+func (*orExpression) expression()          {}
+func (*andExpression) expression()         {}
+func (*notExpression) expression()         {}
 
 type StringField struct {
 	ref FieldRef

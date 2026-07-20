@@ -13,6 +13,9 @@ type queryCompiler struct {
 }
 
 func (c queryCompiler) compile(expr Expression) (clause.Expression, error) {
+	if isNilValue(expr) {
+		return nil, NewExpressionIsNilError()
+	}
 	switch expr := expr.(type) {
 	case *comparisionExpression:
 		return c.compileComparison(expr)
@@ -21,7 +24,7 @@ func (c queryCompiler) compile(expr Expression) (clause.Expression, error) {
 	case *orExpression:
 		return c.compileOr(expr)
 	default:
-		return nil, fmt.Errorf("unsupported expression type: %T", expr)
+		return nil, NewUnsupportedExpressionTypeError(valueTypeName(expr))
 	}
 }
 
@@ -95,7 +98,11 @@ func (c queryCompiler) compileComparison(expr *comparisionExpression) (clause.Ex
 }
 
 func (c queryCompiler) compileCoreComparison(expr *comparisionExpression) (clause.Expression, error) {
-	column := clause.Column{Table: scopePrefix(c.scope) + "cores", Name: expr.Field.Name}
+	prefix, err := scopePrefix(c.scope)
+	if err != nil {
+		return nil, err
+	}
+	column := clause.Column{Table: prefix + "cores", Name: expr.Field.Name}
 	return compileScalarComparison(column, expr.Operator, expr.Value)
 }
 
@@ -118,7 +125,10 @@ func (c queryCompiler) compileKVComparison(expr *comparisionExpression) (clause.
 		return nil, err
 	}
 
-	prefix := scopePrefix(c.scope)
+	prefix, err := scopePrefix(c.scope)
+	if err != nil {
+		return nil, err
+	}
 	id := prefix + "id"
 
 	column := clause.Column{Table: prefix + "kvs", Name: columnName}
@@ -136,7 +146,10 @@ func (c queryCompiler) compileKVComparison(expr *comparisionExpression) (clause.
 }
 
 func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (clause.Expression, error) {
-	prefix := scopePrefix(c.scope)
+	prefix, err := scopePrefix(c.scope)
+	if err != nil {
+		return nil, err
+	}
 	id := prefix + "id"
 	column := clause.Column{Table: prefix + "contents", Name: "value"}
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Value)
@@ -154,7 +167,10 @@ func (c queryCompiler) compileContentComparison(expr *comparisionExpression) (cl
 
 func (c queryCompiler) compileTagComparison(expr *comparisionExpression) (clause.Expression, error) {
 	column := clause.Column{Table: "tags", Name: "name"}
-	prefix := scopePrefix(c.scope)
+	prefix, err := scopePrefix(c.scope)
+	if err != nil {
+		return nil, err
+	}
 	id := prefix + "id"
 
 	scalarComperison, err := compileScalarComparison(column, expr.Operator, expr.Field.Name)
@@ -202,13 +218,13 @@ func compileScalarComparison(column clause.Column, operator Operator, value any)
 	}
 }
 
-func scopePrefix(scope Scope) string {
+func scopePrefix(scope Scope) (string, error) {
 	switch scope {
 	case ScopeNode:
-		return "node_"
+		return "node_", nil
 	case ScopeEdge:
-		return "edge_"
+		return "edge_", nil
 	default:
-		panic(fmt.Sprintf("unsupported scope: %v", scope))
+		return "", NewUnsupportedScopeError(scope)
 	}
 }
